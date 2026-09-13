@@ -380,7 +380,23 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .et-search-wrap input:focus{border-color:#5b9cf6}
 .et-search-wrap input::placeholder{color:#5a6a8a}
 .et-empty{text-align:center;padding:40px 24px;color:#8898bb;font-family:'DM Sans',sans-serif;font-size:.85rem}
-@media(max-width:600px){.et-grid{grid-template-columns:1fr}.et-footer{flex-direction:column}}
+@media(max-width:600px){
+  .et-grid{grid-template-columns:repeat(2,1fr);gap:12px;padding:4px 14px 20px}
+  .et-filters{padding:0 14px 4px}
+  .et-footer{flex-direction:column}
+  .et-card{border-radius:14px}
+  .et-card:hover{transform:none}
+  .et-card-body{padding:10px 10px 12px;gap:6px}
+  .et-photo-wrap .et-initials{font-size:2rem}
+  .et-info h4{font-size:.94rem;line-height:1.15}
+  .et-info p{font-size:.58rem;letter-spacing:.5px}
+  .et-bio{font-size:.68rem;line-height:1.4;-webkit-line-clamp:2}
+  .et-bio-toggle{font-size:.62rem}
+  .et-tags{gap:4px}
+  .et-tag{font-size:.56rem;padding:2px 8px}
+  .et-choose-btn{font-size:.66rem;padding:8px 0;letter-spacing:0}
+}
+@media(max-width:360px){.et-grid{gap:8px;padding:4px 10px 16px}.et-card-body{padding:8px 8px 10px}}
 </style>
 </head>
 <body>
