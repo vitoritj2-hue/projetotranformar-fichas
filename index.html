@@ -518,6 +518,16 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <div class="et-empty" id="et-empty" style="display:none">Nenhum terapeuta encontrado com esse termo.</div>
   </div>
 
+  <div class="modal-overlay" id="horario-overlay" onclick="if(event.target===this)fecharHorarioTerapeuta()">
+    <div class="modal" style="max-width:420px;padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h3 id="horario-nome" style="font-size:1rem;font-weight:700">Horário disponível</h3>
+        <button class="modal-close" onclick="fecharHorarioTerapeuta()">✕</button>
+      </div>
+      <div id="horario-conteudo"></div>
+    </div>
+  </div>
+
 <div id="screen-triagem" class="screen" style="background:var(--bg)">
   <div class="triagem-header">
     <button class="back-btn" onclick="voltarDaTriagem()">←</button>
@@ -960,9 +970,11 @@ function renderTerapeutas(){
       +'<div class="et-info"><h4>'+(t.iconeAbordagem?t.iconeAbordagem+' ':'')+nomeExibido+'</h4><p>'+(t.esp||t.formacao||'Terapeuta')+'</p></div>'
       +(t.bio?'<div class="et-bio">'+t.bio+'</div><button class="et-bio-toggle" style="display:none">Ver mais</button>':'')
       +(tags?'<div class="et-tags">'+tags+'</div>':'')
+      +'<button class="et-choose-btn et-btn-horario" style="background:transparent;border:1px solid var(--border2);color:var(--text2)">🗓 Horário disponível</button>'
       +'<button class="et-choose-btn">Escolher este terapeuta ›</button>'
       +'</div>';
-    div.querySelector('.et-choose-btn').onclick=(e)=>{e.stopPropagation();confirmarEscolhaTerapeuta(t.id,nomeExibido);};
+    div.querySelector('.et-btn-horario').onclick=(e)=>{e.stopPropagation();abrirHorarioTerapeuta(t,nomeExibido);};
+    div.querySelector('.et-choose-btn:not(.et-btn-horario)').onclick=(e)=>{e.stopPropagation();confirmarEscolhaTerapeuta(t.id,nomeExibido);};
     const toggleBtn=div.querySelector('.et-bio-toggle');
     if(toggleBtn){
       toggleBtn.onclick=(e)=>{
@@ -994,6 +1006,27 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(searchInput) searchInput.addEventListener('input',renderTerapeutas);
 });
 
+function abrirHorarioTerapeuta(t,nomeExibido){
+  document.getElementById('horario-nome').textContent='🗓 Horário de '+(nomeExibido||t.nome);
+  const wd=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const disp=t.disponibilidade||{};
+  const diasAtivos=Object.entries(disp).filter(([d,s])=>Array.isArray(s)&&s.length>0).sort((a,b)=>+a[0]-+b[0]);
+  const conteudo=document.getElementById('horario-conteudo');
+  conteudo.innerHTML=diasAtivos.length
+    ?'<div style="display:flex;flex-direction:column;gap:10px">'
+      +diasAtivos.map(([d,slots])=>'<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'
+        +'<span style="font-size:.78rem;font-weight:700;color:var(--text);min-width:70px;flex-shrink:0">'+wd[+d]+'</span>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:5px">'
+        +slots.map(s=>'<span style="font-size:.72rem;padding:3px 10px;border-radius:50px;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);color:var(--blue)">'+s.ini+'–'+s.fim+'</span>').join('')
+        +'</div></div>').join('')
+      +(t.disp_obs?'<div style="margin-top:10px;font-size:.74rem;color:var(--text3);font-style:italic">'+t.disp_obs+'</div>':'')
+      +'</div>'
+    :'<div style="padding:10px 0;font-size:.8rem;color:var(--text3)">Sem disponibilidade cadastrada no momento.</div>';
+  document.getElementById('horario-overlay').classList.add('open');
+}
+function fecharHorarioTerapeuta(){
+  document.getElementById('horario-overlay').classList.remove('open');
+}
 function selecionarTerapeutaCard(id,nome){
   document.querySelectorAll('.et-card').forEach(c=>c.classList.remove('selected'));
   const card=document.getElementById('et-card-'+id);
