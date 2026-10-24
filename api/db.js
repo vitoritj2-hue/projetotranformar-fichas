@@ -14,11 +14,14 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET' || action === 'select') {
+      // Leitura pública só da tabela de terapeutas, e apenas colunas seguras
+      // (nunca password/password_hash/username/email/crp) — nem dados de pacientes.
+      if (table !== 'terapeutas') return res.status(403).json({ data: null, error: 'Leitura nao permitida' });
       const t = sanitizeTable(table);
       const lim = parseInt(limit) || 1000;
       const ord = orderField === 'nome' ? '"nome"' : '"created_at"';
       const asc = order === 'asc' ? 'ASC' : 'DESC';
-      const rows = await sql(`SELECT * FROM ${t} ORDER BY ${ord} ${asc} LIMIT ${lim}`);
+      const rows = await sql(`SELECT ${PUBLIC_TERAPEUTA_COLS} FROM ${t} ORDER BY ${ord} ${asc} LIMIT ${lim}`);
       return res.json({ data: rows, error: null });
     }
     if (action === 'therapistLoad') {
@@ -53,6 +56,11 @@ export default async function handler(req, res) {
   }
 }
 
+const PUBLIC_TERAPEUTA_COLS = [
+  'id','nome','nomeExibicao','esp','nivel','foto','bio','experiencia','modalidade','formacao','pos',
+  'especialidades','customEspecialidades','categorias','subcategorias','bloqueado',
+  'disponibilidade','disp_hora_inicio','disp_hora_fim','disp_obs','corCard','corCard2','iconeAbordagem',
+].map(c => `"${c}"`).join(', ');
 const ALLOWED_TABLES = ['fichas_triagem', 'fichas_casal', 'terapeutas'];
 function sanitizeTable(t) {
   if (!ALLOWED_TABLES.includes(t)) throw new Error('Tabela nao permitida: ' + t);
