@@ -549,7 +549,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
         <div class="fg"><label>E-mail</label><input id="a-email" type="email" placeholder="email@exemplo.com"></div>
         <div class="fg"><label>Sexo</label><select id="a-sexo"><option value="">Selecione...</option><option>Masculino</option><option>Feminino</option><option>Outro</option></select></div>
         <div class="fg"><label>Estado civil</label><select id="a-ecivil"><option value="">Selecione...</option><option>Solteiro(a)</option><option>Casado(a)</option><option>Divorciado(a)</option><option>Viúvo(a)</option><option>União estável</option></select></div>
-        <div class="fg"><label>Cidade / Estado</label><input id="a-cidade" type="text" placeholder="Ex: São Paulo — SP"></div>
+        <div class="fg"><label>Estado</label><select id="a-estado" onchange="carregarCidades('a')"><option value="">Selecione...</option></select></div>
+        <div class="fg"><label>Cidade</label><input id="a-cidade" type="text" list="a-cidades-lista" autocomplete="off" placeholder="Digite ou escolha a cidade — ex: São Paulo"><datalist id="a-cidades-lista"></datalist></div>
       </div>
       <div class="fst">Saúde e Histórico</div>
       <div class="form-grid one"><div class="fg"><label>Queixa principal</label><textarea id="a-queixa" placeholder="Descreva o motivo..."></textarea></div></div>
@@ -601,7 +602,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
         <div class="fg"><label>Sexo da criança</label><select id="i-sexo"><option value="">Selecione...</option><option>Masculino</option><option>Feminino</option><option>Outro</option></select></div>
         <div class="fg"><label>Escola / Série</label><input id="i-escola" type="text" placeholder="Escola X — 3º ano"></div>
         <div class="fg"><label>Reside com</label><select id="i-reside"><option value="">Selecione...</option><option>Pai e mãe</option><option>Somente mãe</option><option>Somente pai</option><option>Avós</option><option>Outro</option></select></div>
-        <div class="fg"><label>Cidade / Estado</label><input id="i-cidade" type="text" placeholder="Ex: Campinas — SP"></div>
+        <div class="fg"><label>Estado</label><select id="i-estado" onchange="carregarCidades('i')"><option value="">Selecione...</option></select></div>
+        <div class="fg"><label>Cidade</label><input id="i-cidade" type="text" list="i-cidades-lista" autocomplete="off" placeholder="Digite ou escolha a cidade — ex: Campinas"><datalist id="i-cidades-lista"></datalist></div>
       </div>
       <div class="fst">Dados do Responsável</div>
       <div class="form-grid">
@@ -848,6 +850,30 @@ const db = {
   }),
 };
 
+
+// ══ ESTADO / CIDADE ══
+const _UFS=[['AC','Acre'],['AL','Alagoas'],['AP','Amapá'],['AM','Amazonas'],['BA','Bahia'],['CE','Ceará'],['DF','Distrito Federal'],['ES','Espírito Santo'],['GO','Goiás'],['MA','Maranhão'],['MT','Mato Grosso'],['MS','Mato Grosso do Sul'],['MG','Minas Gerais'],['PA','Pará'],['PB','Paraíba'],['PR','Paraná'],['PE','Pernambuco'],['PI','Piauí'],['RJ','Rio de Janeiro'],['RN','Rio Grande do Norte'],['RS','Rio Grande do Sul'],['RO','Rondônia'],['RR','Roraima'],['SC','Santa Catarina'],['SP','São Paulo'],['SE','Sergipe'],['TO','Tocantins']];
+const _cacheCidades={};
+function popularEstados(){
+  ['a-estado','i-estado'].forEach(id=>{
+    const sel=document.getElementById(id);if(!sel||sel.options.length>1)return;
+    _UFS.forEach(([uf,nome])=>{const o=document.createElement('option');o.value=uf;o.textContent=nome+' ('+uf+')';sel.appendChild(o);});
+  });
+}
+async function carregarCidades(prefixo){
+  const uf=gv(prefixo+'-estado'),inp=document.getElementById(prefixo+'-cidade'),dl=document.getElementById(prefixo+'-cidades-lista');
+  if(inp)inp.value='';if(dl)dl.innerHTML='';if(!uf||!dl)return;
+  try{
+    if(!_cacheCidades[uf]){
+      const r=await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados/'+uf+'/municipios?orderBy=nome');
+      if(!r.ok)throw new Error('IBGE '+r.status);
+      _cacheCidades[uf]=(await r.json()).map(m=>m.nome);
+    }
+    dl.innerHTML=_cacheCidades[uf].map(n=>'<option value="'+n.replace(/"/g,'&quot;')+'">').join('');
+  }catch(e){console.warn('Lista de cidades indisponível; digitação livre.',e);}
+}
+document.addEventListener('DOMContentLoaded',popularEstados);
+
 let currentTipo='adulto';let selectedTherapistId=null;let selectedTherapistNome='';
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
@@ -884,7 +910,7 @@ function maskPhone(el){let v=el.value.replace(/\D/g,'').slice(0,11);if(v.length<
 function maskCPF(el){let v=el.value.replace(/\D/g,'').slice(0,11);v=v.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2');el.value=v;}
 
 // ══ VALIDAÇÃO ══
-function validateForm(tipo){document.querySelectorAll('.field-error').forEach(el=>el.classList.remove('field-error'));document.querySelectorAll('.field-error-group').forEach(el=>el.classList.remove('field-error-group'));let errors=[];const req=id=>{if(!gv(id)){markErr(id);errors.push(id);}};if(tipo==='adulto'){['a-nome','a-nasc','a-cpf','a-tel','a-email','a-sexo','a-ecivil','a-cidade','a-queixa','a-terapia','a-med','a-religiao','a-renda','a-auxilio','a-motivacao','a-expectativa','a-dias','a-periodo','a-preferencia-terapeuta'].forEach(req);if(!document.querySelectorAll('#a-sintomas input:checked').length){document.getElementById('a-sintomas').classList.add('field-error-group');errors.push('s');}}else{['i-nome','i-nasc','i-sexo','i-escola','i-reside','i-cidade','i-resp','i-parent','i-tel','i-email','i-queixa','i-hist','i-religiao','i-renda','i-auxilio','i-motivacao','i-expectativa','i-preferencia-terapeuta'].forEach(req);if(!document.querySelectorAll('#i-sintomas input:checked').length){document.getElementById('i-sintomas').classList.add('field-error-group');errors.push('s');}}return errors;}
+function validateForm(tipo){document.querySelectorAll('.field-error').forEach(el=>el.classList.remove('field-error'));document.querySelectorAll('.field-error-group').forEach(el=>el.classList.remove('field-error-group'));let errors=[];const req=id=>{if(!gv(id)){markErr(id);errors.push(id);}};if(tipo==='adulto'){['a-nome','a-nasc','a-cpf','a-tel','a-email','a-sexo','a-ecivil','a-estado','a-cidade','a-queixa','a-terapia','a-med','a-religiao','a-renda','a-auxilio','a-motivacao','a-expectativa','a-dias','a-periodo','a-preferencia-terapeuta'].forEach(req);if(!document.querySelectorAll('#a-sintomas input:checked').length){document.getElementById('a-sintomas').classList.add('field-error-group');errors.push('s');}}else{['i-nome','i-nasc','i-sexo','i-escola','i-reside','i-estado','i-cidade','i-resp','i-parent','i-tel','i-email','i-queixa','i-hist','i-religiao','i-renda','i-auxilio','i-motivacao','i-expectativa','i-preferencia-terapeuta'].forEach(req);if(!document.querySelectorAll('#i-sintomas input:checked').length){document.getElementById('i-sintomas').classList.add('field-error-group');errors.push('s');}}return errors;}
 function getSintomas(cid){return Array.from(document.querySelectorAll('#'+cid+' input:checked')).map(c=>c.value);}
 
 // ══ SUBMIT ══
@@ -1139,8 +1165,8 @@ async function _enviarFicha(){
   banner.style.display='none';btn.disabled=true;btn.textContent='Enviando...';
   let d;
   const aPrefEsp=gv('a-pref-especifico'),iPrefEsp=gv('i-pref-especifico');
-  if(currentTipo==='adulto'){d={tipo:'Adulto',nome:gv('a-nome'),nasc:gv('a-nasc'),cpf:gv('a-cpf'),tel:gv('a-tel'),email:gv('a-email'),sexo:gv('a-sexo'),ecivil:gv('a-ecivil'),cidade:gv('a-cidade'),queixa:gv('a-queixa'),terapia:gv('a-terapia'),med:gv('a-med'),sintomas:JSON.stringify(getSintomas('a-sintomas')),religiao:gv('a-religiao'),renda:gv('a-renda'),auxilio:gv('a-auxilio'),motivacao:gv('a-motivacao'),expectativa:gv('a-expectativa'),dias:gv('a-dias'),periodo:gv('a-periodo'),preferenciaT:gv('a-preferencia-terapeuta')+(aPrefEsp?' — Prefere: '+aPrefEsp:''),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,devolutiva:'',obs:'',devolutivas:{},therapistId:selectedTherapistId,preferenciaT:selectedTherapistNome||gv('a-preferencia-terapeuta')};}
-  else{d={tipo:'Infantil',nome:gv('i-nome'),nasc:gv('i-nasc'),sexo:gv('i-sexo'),escola:gv('i-escola'),reside:gv('i-reside'),cidade:gv('i-cidade'),resp:gv('i-resp'),parent:gv('i-parent'),tel:gv('i-tel'),email:gv('i-email'),queixa:gv('i-queixa'),hist:gv('i-hist'),sintomas:JSON.stringify(getSintomas('i-sintomas')),religiao:gv('i-religiao'),renda:gv('i-renda'),auxilio:gv('i-auxilio'),motivacao:gv('i-motivacao'),expectativa:gv('i-expectativa'),preferenciaT:gv('i-preferencia-terapeuta')+(iPrefEsp?' — Prefere: '+iPrefEsp:''),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,devolutiva:'',obs:'',devolutivas:{},therapistId:selectedTherapistId,preferenciaT:selectedTherapistNome||gv('i-preferencia-terapeuta')};}
+  if(currentTipo==='adulto'){d={tipo:'Adulto',nome:gv('a-nome'),nasc:gv('a-nasc'),cpf:gv('a-cpf'),tel:gv('a-tel'),email:gv('a-email'),sexo:gv('a-sexo'),ecivil:gv('a-ecivil'),estado:gv('a-estado'),cidade:gv('a-cidade'),queixa:gv('a-queixa'),terapia:gv('a-terapia'),med:gv('a-med'),sintomas:JSON.stringify(getSintomas('a-sintomas')),religiao:gv('a-religiao'),renda:gv('a-renda'),auxilio:gv('a-auxilio'),motivacao:gv('a-motivacao'),expectativa:gv('a-expectativa'),dias:gv('a-dias'),periodo:gv('a-periodo'),preferenciaT:gv('a-preferencia-terapeuta')+(aPrefEsp?' — Prefere: '+aPrefEsp:''),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,devolutiva:'',obs:'',devolutivas:{},therapistId:selectedTherapistId,preferenciaT:selectedTherapistNome||gv('a-preferencia-terapeuta')};}
+  else{d={tipo:'Infantil',nome:gv('i-nome'),nasc:gv('i-nasc'),sexo:gv('i-sexo'),escola:gv('i-escola'),reside:gv('i-reside'),estado:gv('i-estado'),cidade:gv('i-cidade'),resp:gv('i-resp'),parent:gv('i-parent'),tel:gv('i-tel'),email:gv('i-email'),queixa:gv('i-queixa'),hist:gv('i-hist'),sintomas:JSON.stringify(getSintomas('i-sintomas')),religiao:gv('i-religiao'),renda:gv('i-renda'),auxilio:gv('i-auxilio'),motivacao:gv('i-motivacao'),expectativa:gv('i-expectativa'),preferenciaT:gv('i-preferencia-terapeuta')+(iPrefEsp?' — Prefere: '+iPrefEsp:''),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,devolutiva:'',obs:'',devolutivas:{},therapistId:selectedTherapistId,preferenciaT:selectedTherapistNome||gv('i-preferencia-terapeuta')};}
   const{data:res,error}=await db.from('fichas_triagem').insert(d).select().single();
   btn.disabled=false;btn.textContent='Enviar Ficha de Triagem';
   if(error){console.error(error);showToast('Erro ao enviar. Tente novamente.');return;}

@@ -43,11 +43,23 @@ export default async function handler(req, res) {
     }
     if (action === 'insert') {
       const t = sanitizeTable(table);
-      const keys = Object.keys(data);
-      const vals = Object.values(data);
-      const cols = keys.map(k => `"${k}"`).join(', ');
-      const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
-      const rows = await sql(`INSERT INTO ${t} (${cols}) VALUES (${placeholders}) RETURNING *`, vals);
+      const insertRow = async (row) => {
+        const keys = Object.keys(row);
+        const cols = keys.map(k => `"${k}"`).join(', ');
+        const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+        return sql(`INSERT INTO ${t} (${cols}) VALUES (${placeholders}) RETURNING *`, Object.values(row));
+      };
+      let rows;
+      try {
+        rows = await insertRow(data);
+      } catch (e) {
+        // Se a coluna "estado" ainda não existe neste banco, grava junto da cidade ("Cidade - UF")
+        if (table === 'fichas_triagem' && 'estado' in data && /column "estado"/i.test(e.message)) {
+          const { estado, ...resto } = data;
+          resto.cidade = [data.cidade, estado].filter(Boolean).join(' - ');
+          rows = await insertRow(resto);
+        } else throw e;
+      }
       return res.json({ data: rows[0], error: null });
     }
     return res.status(400).json({ error: 'Acao invalida' });
