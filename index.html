@@ -673,6 +673,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <div class="form-grid">
         <div class="fg"><label>Há quanto tempo estão juntos?</label><input id="c-tempo" type="text" placeholder="Ex: 3 anos e 6 meses"></div>
         <div class="fg"><label>Possuem filhos?</label><select id="c-filhos"><option value="">Selecione...</option><option value="Não">Não</option><option value="Sim, 1 filho">Sim, 1 filho</option><option value="Sim, 2 filhos">Sim, 2 filhos</option><option value="Sim, 3 ou mais">Sim, 3 ou mais</option></select></div>
+        <div class="fg"><label>Estado onde o casal reside</label><select id="c-estado" onchange="carregarCidades('c')"><option value="">Selecione...</option></select></div>
+        <div class="fg"><label>Cidade</label><input id="c-cidade" type="text" list="c-cidades-lista" autocomplete="off" placeholder="Digite ou escolha a cidade — ex: Campinas"><datalist id="c-cidades-lista"></datalist></div>
       </div>
       <div class="fst">Motivo da Busca Terapêutica</div>
       <div class="form-grid one"><div class="fg"><label>O que motivou vocês a procurarem terapia neste momento?</label><textarea id="c-motivacao" placeholder="Descreva a situação..."></textarea></div></div>
@@ -855,7 +857,7 @@ const db = {
 const _UFS=[['AC','Acre'],['AL','Alagoas'],['AP','Amapá'],['AM','Amazonas'],['BA','Bahia'],['CE','Ceará'],['DF','Distrito Federal'],['ES','Espírito Santo'],['GO','Goiás'],['MA','Maranhão'],['MT','Mato Grosso'],['MS','Mato Grosso do Sul'],['MG','Minas Gerais'],['PA','Pará'],['PB','Paraíba'],['PR','Paraná'],['PE','Pernambuco'],['PI','Piauí'],['RJ','Rio de Janeiro'],['RN','Rio Grande do Norte'],['RS','Rio Grande do Sul'],['RO','Rondônia'],['RR','Roraima'],['SC','Santa Catarina'],['SP','São Paulo'],['SE','Sergipe'],['TO','Tocantins']];
 const _cacheCidades={};
 function popularEstados(){
-  ['a-estado','i-estado'].forEach(id=>{
+  ['a-estado','i-estado','c-estado'].forEach(id=>{
     const sel=document.getElementById(id);if(!sel||sel.options.length>1)return;
     _UFS.forEach(([uf,nome])=>{const o=document.createElement('option');o.value=uf;o.textContent=nome+' ('+uf+')';sel.appendChild(o);});
   });
@@ -1063,7 +1065,7 @@ function selecionarTerapeutaCard(id,nome){
 
 
 // ══ TRIAGEM: recomendação de terapeuta (usa triagem.js) ══
-const _CASAL_REQ=['c-p1-nome','c-p1-idade','c-p1-tel','c-p1-religiao','c-p1-ecivil','c-p2-nome','c-p2-idade','c-p2-tel','c-p2-religiao','c-p2-ecivil','c-tempo','c-filhos','c-motivacao','c-ansiedade','c-depressao','c-crises','c-terapia','c-conexao','c-expectativas','c-ded-p1','c-ded-p2'];
+const _CASAL_REQ=['c-p1-nome','c-p1-idade','c-p1-tel','c-p1-religiao','c-p1-ecivil','c-p2-nome','c-p2-idade','c-p2-tel','c-p2-religiao','c-p2-ecivil','c-tempo','c-filhos','c-estado','c-cidade','c-motivacao','c-ansiedade','c-depressao','c-crises','c-terapia','c-conexao','c-expectativas','c-ded-p1','c-ded-p2'];
 function _validarAntesDeEscolher(){
   const banner=document.getElementById('form-error-banner');
   document.querySelectorAll('.field-error').forEach(el=>el.classList.remove('field-error'));
@@ -1146,12 +1148,12 @@ async function submitTriagem(){
 async function _enviarFicha(){
   const banner=document.getElementById('form-error-banner'),btn=document.getElementById('submit-triagem-btn');
   if(currentTipo==='casal'){
-    const req=['c-p1-nome','c-p1-idade','c-p1-tel','c-p1-religiao','c-p1-ecivil','c-p2-nome','c-p2-idade','c-p2-tel','c-p2-religiao','c-p2-ecivil','c-tempo','c-filhos','c-motivacao','c-ansiedade','c-depressao','c-crises','c-terapia','c-conexao','c-expectativas','c-ded-p1','c-ded-p2'];
+    const req=['c-p1-nome','c-p1-idade','c-p1-tel','c-p1-religiao','c-p1-ecivil','c-p2-nome','c-p2-idade','c-p2-tel','c-p2-religiao','c-p2-ecivil','c-tempo','c-filhos','c-estado','c-cidade','c-motivacao','c-ansiedade','c-depressao','c-crises','c-terapia','c-conexao','c-expectativas','c-ded-p1','c-ded-p2'];
     document.querySelectorAll('.field-error').forEach(el=>el.classList.remove('field-error'));let hasErr=false;req.forEach(id=>{if(!gv(id)){markErr(id);hasErr=true;}});
     if(hasErr){banner.style.display='block';document.querySelector('.field-error')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
     banner.style.display='none';btn.disabled=true;btn.textContent='Enviando...';
     const conflitos=Array.from(document.querySelectorAll('#c-conflitos input:checked')).map(c=>c.value);
-    const data={p1_nome:gv('c-p1-nome'),p1_idade:gv('c-p1-idade'),p1_profissao:gv('c-p1-profissao'),p1_telefone:gv('c-p1-tel'),p1_religiao:gv('c-p1-religiao'),p1_ecivil:gv('c-p1-ecivil'),p2_nome:gv('c-p2-nome'),p2_idade:gv('c-p2-idade'),p2_profissao:gv('c-p2-profissao'),p2_telefone:gv('c-p2-tel'),p2_religiao:gv('c-p2-religiao'),p2_ecivil:gv('c-p2-ecivil'),tempo_juntos:gv('c-tempo'),filhos:gv('c-filhos'),motivacao:gv('c-motivacao'),conflitos:JSON.stringify(conflitos),conflito_outro:gv('c-conflito-outro'),ansiedade:gv('c-ansiedade'),depressao:gv('c-depressao'),crises_emocionais:gv('c-crises'),terapia_anterior:gv('c-terapia'),conexao_emocional:gv('c-conexao'),expectativas:gv('c-expectativas'),dedicacao_p1:gv('c-ded-p1'),dedicacao_p2:gv('c-ded-p2'),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,therapistId:selectedTherapistId};
+    const data={p1_nome:gv('c-p1-nome'),p1_idade:gv('c-p1-idade'),p1_profissao:gv('c-p1-profissao'),p1_telefone:gv('c-p1-tel'),p1_religiao:gv('c-p1-religiao'),p1_ecivil:gv('c-p1-ecivil'),p2_nome:gv('c-p2-nome'),p2_idade:gv('c-p2-idade'),p2_profissao:gv('c-p2-profissao'),p2_telefone:gv('c-p2-tel'),p2_religiao:gv('c-p2-religiao'),p2_ecivil:gv('c-p2-ecivil'),tempo_juntos:gv('c-tempo'),estado:gv('c-estado'),cidade:gv('c-cidade'),filhos:gv('c-filhos'),motivacao:gv('c-motivacao'),conflitos:JSON.stringify(conflitos),conflito_outro:gv('c-conflito-outro'),ansiedade:gv('c-ansiedade'),depressao:gv('c-depressao'),crises_emocionais:gv('c-crises'),terapia_anterior:gv('c-terapia'),conexao_emocional:gv('c-conexao'),expectativas:gv('c-expectativas'),dedicacao_p1:gv('c-ded-p1'),dedicacao_p2:gv('c-ded-p2'),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,therapistId:selectedTherapistId};
     const{data:res,error}=await db.from('fichas_casal').insert(data).select().single();
     btn.disabled=false;btn.textContent='Enviar Ficha de Triagem';
     if(error){console.error(error);showToast('Erro ao enviar. Tente novamente.');return;}

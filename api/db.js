@@ -58,6 +58,12 @@ export default async function handler(req, res) {
           const { estado, ...resto } = data;
           resto.cidade = [data.cidade, estado].filter(Boolean).join(' - ');
           rows = await insertRow(resto);
+        } else if (table === 'fichas_casal' && /column "(estado|cidade)"/i.test(e.message)) {
+          // Colunas de local ainda ausentes neste banco: preserva a informação no texto da motivação
+          const { estado, cidade, ...resto } = data;
+          const local = [cidade, estado].filter(Boolean).join(' - ');
+          if (local) resto.motivacao = (resto.motivacao || '') + '\n[Local: ' + local + ']';
+          rows = await insertRow(resto);
         } else throw e;
       }
       return res.json({ data: rows[0], error: null });
