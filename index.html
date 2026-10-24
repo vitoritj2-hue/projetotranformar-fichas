@@ -506,6 +506,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <h2>Escolha seu <em style="font-style:italic;background:linear-gradient(135deg,#5b9cf6,#2dd4aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">terapeuta</em></h2>
       <p>A seleção de um terapeuta é obrigatória para continuar.</p>
     </div>
+    <div id="et-rec-msg"></div>
     <div class="et-filters">
       <div class="et-search-wrap">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -792,8 +793,9 @@ tr:hover td{background:rgba(255,255,255,.015)}
       </div>
     </div>
 
+    <div id="terapeuta-escolhido" style="display:none;background:rgba(45,212,170,.08);border:1px solid rgba(45,212,170,.3);border-radius:10px;padding:12px 16px;margin-top:18px;font-size:.82rem;color:var(--teal);align-items:center;justify-content:space-between;gap:10px"><span id="terapeuta-escolhido-nome"></span><button type="button" onclick="trocarTerapeuta()" style="background:none;border:1px solid currentColor;color:inherit;border-radius:50px;padding:4px 12px;font-size:.72rem;cursor:pointer">Trocar</button></div>
     <div id="form-error-banner" style="display:none;background:rgba(245,101,101,.08);border:1px solid rgba(245,101,101,.3);border-radius:10px;padding:12px 16px;margin-top:18px;font-size:.82rem;color:var(--red)">Preencha todos os campos obrigatórios.</div>
-    <button class="submit-btn" id="submit-triagem-btn" onclick="submitTriagem()" disabled style="opacity:.5;cursor:not-allowed">Enviar Ficha de Triagem</button>
+    <button class="submit-btn" id="submit-triagem-btn" onclick="submitTriagem()" disabled style="opacity:.5;cursor:not-allowed">Continuar → escolher terapeuta</button>
   </div>
 </div>
 
@@ -826,6 +828,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 <style>@keyframes successPop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
 
 </style>
+<script src="triagem.js"></script>
 <script>
 // ══ TERMOS ══
 function toggleSubmitBtn(){const cb=document.getElementById('contract-checkbox'),sig=document.getElementById('consent-signature'),btn=document.getElementById('submit-triagem-btn');if(!btn)return;const ok=(cb&&cb.checked)&&(sig&&sig.value.trim().length>2);btn.disabled=!ok;btn.style.opacity=ok?'1':'.5';btn.style.cursor=ok?'pointer':'not-allowed';}
@@ -867,12 +870,10 @@ function selecionarTipoAdulto(tipo){currentTipo=tipo==='casal'?'casal':'adulto';
 function voltarDaApresentacao(){if(currentTipo==='infantil'){goHome();}else{document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-tipo-adulto').classList.add('active');}}
 function voltarDaTriagem(){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-apresentacao').classList.add('active');}
 function avancarTriagem(){
-  const pill=document.getElementById('et-tipo-pill');
-  if(pill)pill.textContent=currentTipo==='casal'?'Casal':currentTipo==='infantil'?'Infantil':'Individual';
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  const et=document.getElementById('screen-escolha-terapeuta');
-  if(et){et.classList.add('active');carregarTerapeutas();}
-  else{_irParaTriagem();}
+  // Novo fluxo: primeiro a ficha; o terapeuta é recomendado/escolhido depois (ver submitTriagem)
+  selectedTherapistId=null;selectedTherapistNome='';
+  _irParaTriagem();
+  atualizarBannerTerapeuta();
 }
 function toggleDotsMenu(){const m=document.getElementById('dots-menu');m.style.display=m.style.display==='block'?'none':'block';}
 function closeDotsMenu(){const m=document.getElementById('dots-menu');if(m)m.style.display='none';}
@@ -889,16 +890,15 @@ function getSintomas(cid){return Array.from(document.querySelectorAll('#'+cid+' 
 // ══ SUBMIT ══
 
 function voltarDaEscolha(){
-  selectedTherapistId=null;selectedTherapistNome='';
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-apresentacao').classList.add('active');
+  document.getElementById('screen-triagem').classList.add('active');
 }
 
 function confirmarEscolhaTerapeuta(id,nome){
   if(!id){alert('Por favor, selecione um terapeuta para continuar.');return;}
   selectedTherapistId=id;
   selectedTherapistNome=nome||'';
-  _irParaTriagem();
+  _voltarAoFormComTerapeuta();
 }
 
 function _irParaTriagem(){
@@ -936,6 +936,7 @@ async function carregarTerapeutas(){
     });
     // Ranking justo: menos pacientes ativos primeiro, mais pacientes por último
     todosTerapeutas.sort((a,b)=>a._carga-b._carga||a.nome.localeCompare(b.nome,'pt-BR'));
+    _aplicarRecomendacao();
     renderTerapeutas();
   }catch(e){grid.innerHTML='<div class="et-loading">Erro ao carregar terapeutas.</div>';console.error(e);}
 }
@@ -955,7 +956,7 @@ function renderTerapeutas(){
   const cards=filtrados.map(t=>{
     const esp=t._esp;
     const nomeExibido=(t.nomeExibicao&&t.nomeExibicao.trim())?t.nomeExibicao.trim():t.nome;
-    const tags=esp.slice(0,3).map(e=>'<span class="et-tag">'+e+'</span>').join('');
+    const tags=(t._rec?'<span class="et-tag" style="background:rgba(45,212,170,.15);color:var(--teal);font-weight:700">⭐ Recomendado para você</span>':'')+esp.slice(0,3).map(e=>'<span class="et-tag">'+e+'</span>').join('');
     const initials=nomeExibido.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
     const foto=t.foto?'<img src="'+t.foto+'" alt="'+nomeExibido+'"><div class="et-photo-fade"></div>'
       :'<div class="et-initials">'+initials+'</div>';
@@ -1034,7 +1035,89 @@ function selecionarTerapeutaCard(id,nome){
   selectedTherapistId=id;selectedTherapistNome=nome;
 }
 
+
+// ══ TRIAGEM: recomendação de terapeuta (usa triagem.js) ══
+const _CASAL_REQ=['c-p1-nome','c-p1-idade','c-p1-tel','c-p1-religiao','c-p1-ecivil','c-p2-nome','c-p2-idade','c-p2-tel','c-p2-religiao','c-p2-ecivil','c-tempo','c-filhos','c-motivacao','c-ansiedade','c-depressao','c-crises','c-terapia','c-conexao','c-expectativas','c-ded-p1','c-ded-p2'];
+function _validarAntesDeEscolher(){
+  const banner=document.getElementById('form-error-banner');
+  document.querySelectorAll('.field-error').forEach(el=>el.classList.remove('field-error'));
+  let errs=[];
+  if(currentTipo==='casal'){_CASAL_REQ.forEach(id=>{if(!gv(id)){markErr(id);errs.push(id);}});}
+  else{errs=validateForm(currentTipo);}
+  if(errs.length){banner.style.display='block';document.querySelector('.field-error,.field-error-group')?.scrollIntoView({behavior:'smooth',block:'center'});return false;}
+  banner.style.display='none';return true;
+}
+function _montarFichaParaTriagem(){
+  if(currentTipo==='casal'){
+    return {queixa:gv('c-motivacao'),expectativas:gv('c-expectativas'),outroConflito:gv('c-conflito-outro'),
+      conflitos:Array.from(document.querySelectorAll('#c-conflitos input:checked')).map(c=>c.value),sintomas:[],categoria:'Atendimento de casal'};
+  }
+  const p=currentTipo==='adulto'?'a-':'i-';
+  const sexo=(gv(p+'sexo')||'').toLowerCase();
+  const cat=currentTipo==='infantil'?'Atendimento infantil':(sexo.startsWith('f')?'Atendimento de mulheres':sexo.startsWith('m')?'Atendimento de homens':'');
+  return {queixa:gv(p+'queixa'),motivacao:gv(p+'motivacao'),expectativas:gv(p+'expectativa'),historico:gv(p+'hist'),
+    sintomas:getSintomas(p+'sintomas'),conflitos:[],categoria:cat};
+}
+function _aplicarRecomendacao(){
+  todosTerapeutas.forEach(t=>{t._rec=false;});
+  const msg=document.getElementById('et-rec-msg');if(msg)msg.innerHTML='';
+  const p=document.querySelector('#screen-escolha-terapeuta .et-header p');
+  window._triagemResultado=null;
+  if(!window.Triagem||!window._triagemFicha)return;
+  let r;try{r=Triagem.rankTherapists(window._triagemFicha,todosTerapeutas);}catch(e){console.error('triagem',e);return;}
+  window._triagemResultado=r;
+  const semMotivo=['perfil incompleto','fora da categoria'];
+  const grave=r.gravidade.nivel!=='normal';
+  const top=r.ranking.filter(x=>!x.motivos.includes('fora da categoria')&&(grave
+    ?x.motivos.some(m=>m.startsWith('preparo p/ caso grave')||m.startsWith('nível 3'))
+    :x.motivos.some(m=>!semMotivo.includes(m)))).slice(0,3).map(x=>x.terapeuta);
+  top.forEach(t=>{t._rec=true;});
+  todosTerapeutas=[...top,...todosTerapeutas.filter(t=>!t._rec)];
+  if(p)p.textContent=top.length?'Com base na sua ficha, destacamos os terapeutas mais indicados para você. A escolha final é sua.':'A seleção de um terapeuta é obrigatória para continuar.';
+  if(msg&&r.gravidade.nivel==='critico'){
+    msg.innerHTML='<div style="margin:0 18px 14px;padding:12px 14px;border-radius:12px;background:rgba(91,156,246,.1);border:1px solid rgba(91,156,246,.3);font-size:.82rem;color:var(--text)">💙 Se você estiver pensando em se machucar ou em tirar a própria vida, ligue agora para o <strong>CVV: 188</strong> (gratuito, 24 horas). Você não precisa passar por isso sozinho(a).</div>';
+  }
+}
+async function _notificarGravidade(nome){
+  try{
+    const f=_montarFichaParaTriagem();
+    const g=Triagem.detectarGravidade(Triagem.textos(f).livre);
+    if(g.nivel==='normal')return;
+    const critico=g.nivel==='critico';
+    await addAdminNotification('alerta','ni-red',critico?'⚠️ Ficha com risco crítico':'Ficha com tema sensível',
+      nome+' — termos: '+g.termos.join(', ')+'. '+(critico?'Contato urgente recomendado. ':'')+'Prioridade para terapeutas mais experientes.');
+  }catch(e){console.error(e);}
+}
+function atualizarBannerTerapeuta(){
+  const b=document.getElementById('terapeuta-escolhido'),n=document.getElementById('terapeuta-escolhido-nome'),btn=document.getElementById('submit-triagem-btn');
+  if(!b||!n)return;
+  if(selectedTherapistId){b.style.display='flex';n.textContent='✓ Terapeuta escolhido: '+selectedTherapistNome;if(btn)btn.textContent='Enviar Ficha de Triagem';}
+  else{b.style.display='none';if(btn)btn.textContent='Continuar → escolher terapeuta';}
+}
+function _voltarAoFormComTerapeuta(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-triagem').classList.add('active');
+  atualizarBannerTerapeuta();
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+}
+function trocarTerapeuta(){selectedTherapistId=null;selectedTherapistNome='';atualizarBannerTerapeuta();submitTriagem();}
+function _resetEscolha(){selectedTherapistId=null;selectedTherapistNome='';window._triagemFicha=null;atualizarBannerTerapeuta();}
 async function submitTriagem(){
+  if(!selectedTherapistId){
+    if(!_validarAntesDeEscolher())return;
+    window._triagemFicha=_montarFichaParaTriagem();
+    const pill=document.getElementById('et-tipo-pill');
+    if(pill)pill.textContent=currentTipo==='casal'?'Casal':currentTipo==='infantil'?'Infantil':'Individual';
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-escolha-terapeuta').classList.add('active');
+    window.scrollTo(0,0);
+    await carregarTerapeutas();
+    return;
+  }
+  return _enviarFicha();
+}
+
+async function _enviarFicha(){
   const banner=document.getElementById('form-error-banner'),btn=document.getElementById('submit-triagem-btn');
   if(currentTipo==='casal'){
     const req=['c-p1-nome','c-p1-idade','c-p1-tel','c-p1-religiao','c-p1-ecivil','c-p2-nome','c-p2-idade','c-p2-tel','c-p2-religiao','c-p2-ecivil','c-tempo','c-filhos','c-motivacao','c-ansiedade','c-depressao','c-crises','c-terapia','c-conexao','c-expectativas','c-ded-p1','c-ded-p2'];
@@ -1047,8 +1130,9 @@ async function submitTriagem(){
     btn.disabled=false;btn.textContent='Enviar Ficha de Triagem';
     if(error){console.error(error);showToast('Erro ao enviar. Tente novamente.');return;}
     await addAdminNotification('casal','ni-green','Nova ficha de casal',res.p1_nome+' & '+res.p2_nome+' enviaram uma ficha.');
+    await _notificarGravidade(res.p1_nome+' & '+res.p2_nome);
     document.querySelectorAll('#form-casal input,#form-casal select,#form-casal textarea').forEach(el=>{if(el.type==='checkbox')el.checked=false;else el.value='';});
-    showSuccessOverlay('Sua ficha de triagem de casal foi recebida com sucesso.<br>Em breve nossa equipe entrará em contato.');return;
+    _resetEscolha();showSuccessOverlay('Sua ficha de triagem de casal foi recebida com sucesso.<br>Em breve nossa equipe entrará em contato.');return;
   }
   const errors=validateForm(currentTipo);
   if(errors.length){banner.style.display='block';document.querySelector('.field-error,.field-error-group')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
@@ -1061,9 +1145,10 @@ async function submitTriagem(){
   btn.disabled=false;btn.textContent='Enviar Ficha de Triagem';
   if(error){console.error(error);showToast('Erro ao enviar. Tente novamente.');return;}
   await addAdminNotification('ficha','ni-yellow','Nova ficha recebida',res.nome+' ('+res.tipo+') enviou uma ficha.');
+  await _notificarGravidade(res.nome);
   document.querySelectorAll('#form-adulto input:not([type=checkbox]),#form-adulto textarea,#form-adulto select,#form-infantil input:not([type=checkbox]),#form-infantil textarea,#form-infantil select').forEach(el=>{el.tagName==='SELECT'?el.selectedIndex=0:el.value='';});
   document.querySelectorAll('#a-sintomas input,#i-sintomas input').forEach(c=>c.checked=false);
-  showSuccessOverlay('Sua ficha de triagem foi recebida com sucesso.<br>Em breve nossa equipe entrará em contato.');
+  _resetEscolha();showSuccessOverlay('Sua ficha de triagem foi recebida com sucesso.<br>Em breve nossa equipe entrará em contato.');
 }
 
 // ══ SUCESSO ══

@@ -50,6 +50,7 @@ const PESOS = {
   nivel3_grave: 40,
   nivel2_grave: 10,
   categoria: 4,
+  categoria_incompativel: -100,   // terapeuta declara categorias e nenhuma serve (ex.: criança com quem não atende infantil)
 };
 
 // ---------- utilitários ----------
@@ -131,8 +132,9 @@ function rankTherapists(ficha, terapeutas) {
       if (rs.some((r) => tem(p.bio, r)))   { score += PESOS.tema_bio; motivos.push(`bio: ${tema}`); }
     }
 
-    if (ficha.categoria && p.cats.includes(norm(ficha.categoria))) {
-      score += PESOS.categoria; motivos.push('categoria compatível');
+    if (ficha.categoria && p.cats.length) {
+      if (p.cats.includes(norm(ficha.categoria))) { score += PESOS.categoria; motivos.push('categoria compatível'); }
+      else { score += PESOS.categoria_incompativel; motivos.push('fora da categoria'); }
     }
 
     score += p.nivel * PESOS.nivel;
@@ -156,5 +158,5 @@ function rankTherapists(ficha, terapeutas) {
   return { gravidade, temas, avisos, ranking };
 }
 
-if (typeof module !== 'undefined') module.exports = { rankTherapists, detectarGravidade, detectarTemas, prepararTerapeuta };
-if (typeof window !== 'undefined') window.Triagem = { rankTherapists, detectarGravidade, detectarTemas, prepararTerapeuta };
+if (typeof module !== 'undefined') module.exports = { rankTherapists, detectarGravidade, detectarTemas, prepararTerapeuta, textos };
+if (typeof window !== 'undefined') window.Triagem = { rankTherapists, detectarGravidade, detectarTemas, prepararTerapeuta, textos };
