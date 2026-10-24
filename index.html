@@ -586,10 +586,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <div class="form-grid">
         <div class="fg"><label>Dias preferidos</label><select id="a-dias"><option value="">Selecione...</option><option>Segunda a Sexta</option><option>Seg, Qua e Sex</option><option>Ter e Qui</option><option>Finais de semana</option></select></div>
         <div class="fg"><label>Período</label><select id="a-periodo"><option value="">Selecione...</option><option>Manhã</option><option>Tarde</option><option>Noite</option><option>Qualquer</option></select></div>
-        <div class="fg"><label>Preferência de terapeuta</label><select id="a-preferencia-terapeuta"><option value="">Selecione...</option><option value="Sem preferência">Sem preferência</option><option value="Feminino">Terapeuta mulher</option><option value="Masculino">Terapeuta homem</option></select></div>
-      </div>
-      <div class="form-grid one" style="margin-top:10px">
-        <div class="fg"><label>Você tem preferência por algum terapeuta específico? <span style="font-weight:400;color:var(--text3);font-size:.65rem">(opcional)</span></label><input type="text" id="a-pref-especifico" placeholder="Ex: Ana Paula — ou deixe em branco se não tiver preferência"></div>
       </div>
     </div>
 
@@ -638,13 +634,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <div class="form-grid one">
         <div class="fg"><label>O que motivou a busca por atendimento agora?</label><textarea id="i-motivacao"></textarea></div>
         <div class="fg"><label>Expectativas para o processo terapêutico</label><textarea id="i-expectativa"></textarea></div>
-      </div>
-      <div class="fst">Preferências de Atendimento</div>
-      <div class="form-grid">
-        <div class="fg"><label>Preferência de terapeuta</label><select id="i-preferencia-terapeuta"><option value="">Selecione...</option><option value="Sem preferência">Sem preferência</option><option value="Feminino">Terapeuta mulher</option><option value="Masculino">Terapeuta homem</option></select></div>
-      </div>
-      <div class="form-grid one" style="margin-top:10px">
-        <div class="fg"><label>Você tem preferência por algum terapeuta específico? <span style="font-weight:400;color:var(--text3);font-size:.65rem">(opcional)</span></label><input type="text" id="i-pref-especifico" placeholder="Ex: Ana Paula — ou deixe em branco se não tiver preferência"></div>
       </div>
     </div>
 
@@ -912,7 +901,7 @@ function maskPhone(el){let v=el.value.replace(/\D/g,'').slice(0,11);if(v.length<
 function maskCPF(el){let v=el.value.replace(/\D/g,'').slice(0,11);v=v.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2');el.value=v;}
 
 // ══ VALIDAÇÃO ══
-function validateForm(tipo){document.querySelectorAll('.field-error').forEach(el=>el.classList.remove('field-error'));document.querySelectorAll('.field-error-group').forEach(el=>el.classList.remove('field-error-group'));let errors=[];const req=id=>{if(!gv(id)){markErr(id);errors.push(id);}};if(tipo==='adulto'){['a-nome','a-nasc','a-cpf','a-tel','a-email','a-sexo','a-ecivil','a-estado','a-cidade','a-queixa','a-terapia','a-med','a-religiao','a-renda','a-auxilio','a-motivacao','a-expectativa','a-dias','a-periodo','a-preferencia-terapeuta'].forEach(req);if(!document.querySelectorAll('#a-sintomas input:checked').length){document.getElementById('a-sintomas').classList.add('field-error-group');errors.push('s');}}else{['i-nome','i-nasc','i-sexo','i-escola','i-reside','i-estado','i-cidade','i-resp','i-parent','i-tel','i-email','i-queixa','i-hist','i-religiao','i-renda','i-auxilio','i-motivacao','i-expectativa','i-preferencia-terapeuta'].forEach(req);if(!document.querySelectorAll('#i-sintomas input:checked').length){document.getElementById('i-sintomas').classList.add('field-error-group');errors.push('s');}}return errors;}
+function validateForm(tipo){document.querySelectorAll('.field-error').forEach(el=>el.classList.remove('field-error'));document.querySelectorAll('.field-error-group').forEach(el=>el.classList.remove('field-error-group'));let errors=[];const req=id=>{if(!gv(id)){markErr(id);errors.push(id);}};if(tipo==='adulto'){['a-nome','a-nasc','a-cpf','a-tel','a-email','a-sexo','a-ecivil','a-estado','a-cidade','a-queixa','a-terapia','a-med','a-religiao','a-renda','a-auxilio','a-motivacao','a-expectativa','a-dias','a-periodo'].forEach(req);if(!document.querySelectorAll('#a-sintomas input:checked').length){document.getElementById('a-sintomas').classList.add('field-error-group');errors.push('s');}}else{['i-nome','i-nasc','i-sexo','i-escola','i-reside','i-estado','i-cidade','i-resp','i-parent','i-tel','i-email','i-queixa','i-hist','i-religiao','i-renda','i-auxilio','i-motivacao','i-expectativa'].forEach(req);if(!document.querySelectorAll('#i-sintomas input:checked').length){document.getElementById('i-sintomas').classList.add('field-error-group');errors.push('s');}}return errors;}
 function getSintomas(cid){return Array.from(document.querySelectorAll('#'+cid+' input:checked')).map(c=>c.value);}
 
 // ══ SUBMIT ══
@@ -1166,9 +1155,8 @@ async function _enviarFicha(){
   if(errors.length){banner.style.display='block';document.querySelector('.field-error,.field-error-group')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
   banner.style.display='none';btn.disabled=true;btn.textContent='Enviando...';
   let d;
-  const aPrefEsp=gv('a-pref-especifico'),iPrefEsp=gv('i-pref-especifico');
-  if(currentTipo==='adulto'){d={tipo:'Adulto',nome:gv('a-nome'),nasc:gv('a-nasc'),cpf:gv('a-cpf'),tel:gv('a-tel'),email:gv('a-email'),sexo:gv('a-sexo'),ecivil:gv('a-ecivil'),estado:gv('a-estado'),cidade:gv('a-cidade'),queixa:gv('a-queixa'),terapia:gv('a-terapia'),med:gv('a-med'),sintomas:JSON.stringify(getSintomas('a-sintomas')),religiao:gv('a-religiao'),renda:gv('a-renda'),auxilio:gv('a-auxilio'),motivacao:gv('a-motivacao'),expectativa:gv('a-expectativa'),dias:gv('a-dias'),periodo:gv('a-periodo'),preferenciaT:gv('a-preferencia-terapeuta')+(aPrefEsp?' — Prefere: '+aPrefEsp:''),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,devolutiva:'',obs:'',devolutivas:{},therapistId:selectedTherapistId,preferenciaT:selectedTherapistNome||gv('a-preferencia-terapeuta')};}
-  else{d={tipo:'Infantil',nome:gv('i-nome'),nasc:gv('i-nasc'),sexo:gv('i-sexo'),escola:gv('i-escola'),reside:gv('i-reside'),estado:gv('i-estado'),cidade:gv('i-cidade'),resp:gv('i-resp'),parent:gv('i-parent'),tel:gv('i-tel'),email:gv('i-email'),queixa:gv('i-queixa'),hist:gv('i-hist'),sintomas:JSON.stringify(getSintomas('i-sintomas')),religiao:gv('i-religiao'),renda:gv('i-renda'),auxilio:gv('i-auxilio'),motivacao:gv('i-motivacao'),expectativa:gv('i-expectativa'),preferenciaT:gv('i-preferencia-terapeuta')+(iPrefEsp?' — Prefere: '+iPrefEsp:''),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,devolutiva:'',obs:'',devolutivas:{},therapistId:selectedTherapistId,preferenciaT:selectedTherapistNome||gv('i-preferencia-terapeuta')};}
+  if(currentTipo==='adulto'){d={tipo:'Adulto',nome:gv('a-nome'),nasc:gv('a-nasc'),cpf:gv('a-cpf'),tel:gv('a-tel'),email:gv('a-email'),sexo:gv('a-sexo'),ecivil:gv('a-ecivil'),estado:gv('a-estado'),cidade:gv('a-cidade'),queixa:gv('a-queixa'),terapia:gv('a-terapia'),med:gv('a-med'),sintomas:JSON.stringify(getSintomas('a-sintomas')),religiao:gv('a-religiao'),renda:gv('a-renda'),auxilio:gv('a-auxilio'),motivacao:gv('a-motivacao'),expectativa:gv('a-expectativa'),dias:gv('a-dias'),periodo:gv('a-periodo'),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,devolutiva:'',obs:'',devolutivas:{},therapistId:selectedTherapistId,preferenciaT:selectedTherapistNome};}
+  else{d={tipo:'Infantil',nome:gv('i-nome'),nasc:gv('i-nasc'),sexo:gv('i-sexo'),escola:gv('i-escola'),reside:gv('i-reside'),estado:gv('i-estado'),cidade:gv('i-cidade'),resp:gv('i-resp'),parent:gv('i-parent'),tel:gv('i-tel'),email:gv('i-email'),queixa:gv('i-queixa'),hist:gv('i-hist'),sintomas:JSON.stringify(getSintomas('i-sintomas')),religiao:gv('i-religiao'),renda:gv('i-renda'),auxilio:gv('i-auxilio'),motivacao:gv('i-motivacao'),expectativa:gv('i-expectativa'),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,devolutiva:'',obs:'',devolutivas:{},therapistId:selectedTherapistId,preferenciaT:selectedTherapistNome};}
   const{data:res,error}=await db.from('fichas_triagem').insert(d).select().single();
   btn.disabled=false;btn.textContent='Enviar Ficha de Triagem';
   if(error){console.error(error);showToast('Erro ao enviar. Tente novamente.');return;}
