@@ -33,8 +33,9 @@ const TEMAS = {
 const GRAVES = {
   grave: ['abuso', 'abusad', 'estupr', 'violencia sexual', 'violentad', 'assedio', 'molest',
           'incesto', 'violencia domestica', 'agressao', 'agredid', 'espanc', 'maus-tratos', 'maus tratos'],
-  critico: ['suicid', 'me matar', 'tirar minha vida', 'acabar com tudo', 'automutil', 'me cortar',
-            'nao quero viver', 'quero morrer'],
+  critico: ['suicid', 'me matar', 'matar-me', 'tirar minha vida', 'tirar a propria vida', 'acabar com minha vida', 'acabar com tudo',
+            'automutil', 'me cortar', 'quero morrer', 'vontade de morrer', 'pensando em morrer',
+            'nao quero viver', 'nao quero mais viver', 'desistir de viver', 'desistir da vida'],
 };
 
 // Radicais que, nas áreas/bio do terapeuta, indicam preparo para casos graves

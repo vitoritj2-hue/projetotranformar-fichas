@@ -1096,7 +1096,7 @@ async function _notificarGravidade(nome){
     const g=Triagem.detectarGravidade(Triagem.textos(f).livre);
     if(g.nivel==='normal')return;
     const critico=g.nivel==='critico';
-    await addAdminNotification('alerta','ni-red',critico?'⚠️ Ficha com risco crítico':'Ficha com tema sensível',
+    await addAdminNotification(critico?'🚨':'⚠️','ni-red',critico?'Ficha com risco crítico':'Ficha com tema sensível',
       nome+' — termos: '+g.termos.join(', ')+'. '+(critico?'Contato urgente recomendado. ':'')+'Prioridade para terapeutas mais experientes.');
   }catch(e){console.error(e);}
 }
