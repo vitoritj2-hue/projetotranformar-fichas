@@ -368,8 +368,19 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .et-rec-box{text-align:center}
 .et-rec-inner{display:flex;flex-wrap:wrap;justify-content:center;gap:22px;padding:0;overflow:visible}
 .et-rec-inner .et-card{flex:0 1 300px;max-width:340px;text-align:left}
-@media(max-width:600px){.et-rec-inner{gap:12px}.et-rec-inner .et-card{flex:0 1 calc(50% - 6px);max-width:none}}
-@media(max-width:360px){.et-rec-inner{gap:8px}.et-rec-inner .et-card{flex-basis:calc(50% - 4px)}}
+@media(max-width:600px){
+  .et-rec-box{padding:12px 8px 14px;border-radius:16px}
+  .et-rec-title{font-size:.9rem}
+  .et-rec-sub{font-size:.66rem;margin-bottom:10px}
+  .et-rec-inner{flex-wrap:nowrap;gap:6px}
+  .et-rec-inner .et-card{flex:1 1 0;min-width:0;max-width:none;border-radius:12px}
+  .et-rec-inner .et-card-body{padding:6px 5px 8px;gap:4px}
+  .et-rec-inner .et-info h4{font-size:.72rem;line-height:1.15;word-break:break-word}
+  .et-rec-inner .et-info p{font-size:.5rem;letter-spacing:0}
+  .et-rec-inner .et-bio,.et-rec-inner .et-bio-toggle,.et-rec-inner .et-tags{display:none!important}
+  .et-rec-inner .et-choose-btn{font-size:.52rem;padding:6px 2px;line-height:1.15;white-space:normal}
+  .et-rec-inner .et-photo-wrap .et-initials{font-size:1.4rem}
+}
 .et-card.et-rec{border-color:rgba(45,212,170,.5)}
 .et-rows{display:flex;flex-direction:column;gap:32px;padding:6px 0 28px;overflow-y:auto;overflow-x:hidden}
 .et-rows>.et-sec-title{margin:6px 24px 0;grid-column:auto}
