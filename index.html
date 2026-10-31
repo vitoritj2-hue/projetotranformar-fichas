@@ -367,6 +367,34 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .et-rec-sub{font-family:'DM Sans',sans-serif;font-size:.74rem;color:#8898bb;margin:2px 0 14px}
 .et-rec-inner{padding:0;overflow:visible}
 .et-card.et-rec{border-color:rgba(45,212,170,.5)}
+.et-rows{display:flex;flex-direction:column;gap:32px;padding:6px 0 28px;overflow-y:auto;overflow-x:hidden}
+.et-rows>.et-sec-title{margin:6px 24px 0;grid-column:auto}
+.et-row-title{font-family:'DM Sans',sans-serif;font-size:1.02rem;font-weight:700;color:#eef2ff;padding:0 24px;margin-bottom:12px;letter-spacing:-.005em;display:flex;align-items:baseline;gap:8px}
+.et-row-title .et-row-count{font-size:.68rem;font-weight:500;color:#5a6a8a}
+.et-row-scroll{display:flex;gap:16px;overflow-x:auto;overflow-y:hidden;padding:4px 24px 14px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.et-row-scroll::-webkit-scrollbar{height:6px}
+.et-row-scroll::-webkit-scrollbar-track{background:transparent}
+.et-row-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:10px}
+.et-row-track{position:relative}
+.et-row-scroll{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%)}
+.et-row-nav{position:absolute;top:50%;transform:translateY(-6px);width:38px;height:38px;border-radius:50%;background:rgba(10,16,30,.82);border:1px solid rgba(255,255,255,.14);color:#eef2ff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;opacity:0;transition:opacity .25s,background .2s;backdrop-filter:blur(4px)}
+.et-row:hover .et-row-nav{opacity:1}
+.et-row-nav:hover{background:rgba(10,16,30,.95)}
+.et-row-nav.et-row-nav-prev{left:6px}
+.et-row-nav.et-row-nav-next{right:6px}
+.et-row-nav[disabled]{opacity:0!important;pointer-events:none}
+.et-row-scroll .et-card{flex:0 0 222px;scroll-snap-align:start}
+.et-row-scroll .et-card:hover{transform:translateY(-4px) scale(1.015)}
+@media(max-width:600px){
+  .et-rows{gap:24px;padding:4px 0 20px}
+  .et-rows>.et-sec-title{margin:6px 14px 0}
+  .et-row-title{padding:0 14px;font-size:.88rem;margin-bottom:8px}
+  .et-row-scroll{gap:10px;padding:4px 14px 12px}
+  .et-row-nav{display:none}
+  .et-row-scroll .et-card{flex-basis:150px;border-radius:14px}
+  .et-row-scroll .et-card:hover{transform:none}
+}
+@media(max-width:360px){.et-row-scroll .et-card{flex-basis:132px}}
 .et-sec-title{grid-column:1/-1;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:700;color:#eef2ff;margin:10px 4px 0;padding-top:6px;border-top:1px solid rgba(255,255,255,.08)}
 .et-info h4{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:600;color:#eef2ff;margin-bottom:2px;line-height:1.2}
 .et-info p{font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#e8c97a}
@@ -522,6 +550,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <div class="et-grid" id="et-grid">
       <div style="text-align:center;padding:30px;color:#8898bb;font-family:'DM Sans',sans-serif;font-size:.82rem">⏳ Carregando terapeutas...</div>
     </div>
+    <div class="et-rows" id="et-rows" style="display:none"></div>
     <div class="et-empty" id="et-empty" style="display:none">Nenhum terapeuta encontrado com esse termo.</div>
   </div>
 
@@ -948,9 +977,11 @@ async function carregarTerapeutas(){
     const ativos=data.filter(t=>!t.bloqueado&&t.nome&&t.nivel&&String(t.nivel)!=='0');
     if(!ativos.length){grid.innerHTML='<div class="et-loading">Nenhum terapeuta disponível no momento.</div>';return;}
     todosTerapeutas=ativos.map(t=>{
-      let esp=[];
-      try{esp=Array.isArray(t.especialidades)?t.especialidades:(typeof t.especialidades==='string'?JSON.parse(t.especialidades):[]); }catch(e){}
-      return Object.assign({},t,{_esp:esp,_carga:cargaPorId[t.id]||0});
+      const parseArr=v=>{if(Array.isArray(v))return v;if(typeof v==='string'&&v.trim()){try{const p=JSON.parse(v);return Array.isArray(p)?p:(p&&typeof p==='object'?Object.values(p).flat():[]);}catch(e){return[];}}return[];};
+      let sub=parseArr(t.subcategorias);
+      if(!sub.length)sub=parseArr(t.especialidades); // compatibilidade com dados antigos
+      sub=[...new Set(sub.filter(Boolean).map(x=>String(x).trim()))];
+      return Object.assign({},t,{_esp:sub,_carga:cargaPorId[t.id]||0});
     });
     // Ranking justo: menos pacientes ativos primeiro, mais pacientes por último
     todosTerapeutas.sort((a,b)=>a._carga-b._carga||a.nome.localeCompare(b.nome,'pt-BR'));
@@ -959,8 +990,90 @@ async function carregarTerapeutas(){
   }catch(e){grid.innerHTML='<div class="et-loading">Erro ao carregar terapeutas.</div>';console.error(e);}
 }
 
+function criarCardTerapeuta(t){
+  const esp=t._esp||[];
+  const nomeExibido=(t.nomeExibicao&&t.nomeExibicao.trim())?t.nomeExibicao.trim():t.nome;
+  const tags=esp.slice(0,3).map(e=>'<span class="et-tag">'+e+'</span>').join('');
+  const initials=nomeExibido.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const foto=t.foto?'<img src="'+t.foto+'" alt="'+nomeExibido+'"><div class="et-photo-fade"></div>'
+    :'<div class="et-initials">'+initials+'</div>';
+  const div=document.createElement('div');
+  div.className='et-card'+(t._rec?' et-rec':'');
+  div.dataset.tid=t.id;
+  if(t.corCard) div.style.setProperty('--tc',t.corCard);
+  if(t.corCard2) div.style.setProperty('--tc2',t.corCard2);
+  div.onclick=()=>selecionarTerapeutaCard(t.id,nomeExibido);
+  div.innerHTML='<div class="et-photo-wrap">'+foto+'</div>'
+    +'<div class="et-card-body">'
+    +'<div class="et-info"><h4>'+(t.iconeAbordagem?t.iconeAbordagem+' ':'')+nomeExibido+'</h4><p>'+(t.esp||t.formacao||'Terapeuta')+'</p></div>'
+    +(t.bio?'<div class="et-bio">'+t.bio+'</div><button class="et-bio-toggle" style="display:none">Ver mais</button>':'')
+    +(tags?'<div class="et-tags">'+tags+'</div>':'')
+    +'<button class="et-choose-btn et-btn-horario" style="background:transparent;border:1px solid var(--border2);color:var(--text2)">🗓 Horário disponível</button>'
+    +'<button class="et-choose-btn">Escolher este terapeuta ›</button>'
+    +'</div>';
+  div.querySelector('.et-btn-horario').onclick=(e)=>{e.stopPropagation();abrirHorarioTerapeuta(t,nomeExibido);};
+  div.querySelector('.et-choose-btn:not(.et-btn-horario)').onclick=(e)=>{e.stopPropagation();confirmarEscolhaTerapeuta(t.id,nomeExibido);};
+  const toggleBtn=div.querySelector('.et-bio-toggle');
+  if(toggleBtn){
+    toggleBtn.onclick=(e)=>{
+      e.stopPropagation();
+      const bioEl=div.querySelector('.et-bio');
+      const expandido=bioEl.classList.toggle('et-bio-expanded');
+      toggleBtn.textContent=expandido?'Ver menos':'Ver mais';
+    };
+  }
+  return div;
+}
+function criarLinhaTerapeutas(titulo,lista){
+  const row=document.createElement('div');
+  row.className='et-row';
+  const h=document.createElement('div');
+  h.className='et-row-title';
+  h.innerHTML=titulo+'<span class="et-row-count">'+lista.length+'</span>';
+  const scroll=document.createElement('div');
+  scroll.className='et-row-scroll';
+  lista.forEach(t=>scroll.appendChild(criarCardTerapeuta(t)));
+  const prev=document.createElement('button');
+  prev.type='button';prev.className='et-row-nav et-row-nav-prev';prev.setAttribute('aria-label','Rolar para a esquerda');
+  prev.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+  const next=document.createElement('button');
+  next.type='button';next.className='et-row-nav et-row-nav-next';next.setAttribute('aria-label','Rolar para a direita');
+  next.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+  const passo=()=>Math.round(scroll.clientWidth*0.85);
+  prev.onclick=()=>scroll.scrollBy({left:-passo(),behavior:'smooth'});
+  next.onclick=()=>scroll.scrollBy({left:passo(),behavior:'smooth'});
+  const atualizarNav=()=>{
+    const max=scroll.scrollWidth-scroll.clientWidth;
+    prev.disabled=scroll.scrollLeft<=4;
+    next.disabled=scroll.scrollLeft>=max-4;
+  };
+  scroll.addEventListener('scroll',atualizarNav,{passive:true});
+  const track=document.createElement('div');
+  track.className='et-row-track';
+  track.appendChild(prev);
+  track.appendChild(scroll);
+  track.appendChild(next);
+  row.appendChild(h);
+  row.appendChild(track);
+  requestAnimationFrame(atualizarNav);
+  window.addEventListener('resize',atualizarNav);
+  return row;
+}
+function finalizarRenderCards(){
+  document.querySelectorAll('.et-card').forEach(div=>{
+    const bioEl=div.querySelector('.et-bio');
+    const toggleBtn=div.querySelector('.et-bio-toggle');
+    if(bioEl&&toggleBtn&&bioEl.scrollHeight>bioEl.clientHeight+1){
+      toggleBtn.style.display='block';
+    }
+  });
+  if(selectedTherapistId){
+    document.querySelectorAll('.et-card[data-tid="'+selectedTherapistId+'"]').forEach(c=>c.classList.add('selected'));
+  }
+}
 function renderTerapeutas(){
   const grid=document.getElementById('et-grid');
+  const rows=document.getElementById('et-rows');
   const empty=document.getElementById('et-empty');
   const termo=(document.getElementById('et-search')?.value||'').trim().toLowerCase();
   const filtrados=todosTerapeutas.filter(t=>{
@@ -969,63 +1082,46 @@ function renderTerapeutas(){
     const campoTags=t._esp.join(' ').toLowerCase();
     return campos.includes(termo)||campoTags.includes(termo);
   });
-  if(!filtrados.length){grid.innerHTML='';empty.style.display='block';return;}
+  grid.innerHTML='';rows.innerHTML='';
+  if(!filtrados.length){rows.style.display='none';empty.style.display='block';return;}
   empty.style.display='none';
-  const cards=filtrados.map(t=>{
-    const esp=t._esp;
-    const nomeExibido=(t.nomeExibicao&&t.nomeExibicao.trim())?t.nomeExibicao.trim():t.nome;
-    const tags=esp.slice(0,3).map(e=>'<span class="et-tag">'+e+'</span>').join('');
-    const initials=nomeExibido.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const foto=t.foto?'<img src="'+t.foto+'" alt="'+nomeExibido+'"><div class="et-photo-fade"></div>'
-      :'<div class="et-initials">'+initials+'</div>';
-    const div=document.createElement('div');
-    div.className='et-card'+(t._rec?' et-rec':'');
-    div.id='et-card-'+t.id;
-    if(t.corCard) div.style.setProperty('--tc',t.corCard);
-    if(t.corCard2) div.style.setProperty('--tc2',t.corCard2);
-    div.onclick=()=>selecionarTerapeutaCard(t.id,nomeExibido);
-    div.innerHTML='<div class="et-photo-wrap">'+foto+'</div>'
-      +'<div class="et-card-body">'
-      +'<div class="et-info"><h4>'+(t.iconeAbordagem?t.iconeAbordagem+' ':'')+nomeExibido+'</h4><p>'+(t.esp||t.formacao||'Terapeuta')+'</p></div>'
-      +(t.bio?'<div class="et-bio">'+t.bio+'</div><button class="et-bio-toggle" style="display:none">Ver mais</button>':'')
-      +(tags?'<div class="et-tags">'+tags+'</div>':'')
-      +'<button class="et-choose-btn et-btn-horario" style="background:transparent;border:1px solid var(--border2);color:var(--text2)">🗓 Horário disponível</button>'
-      +'<button class="et-choose-btn">Escolher este terapeuta ›</button>'
-      +'</div>';
-    div.querySelector('.et-btn-horario').onclick=(e)=>{e.stopPropagation();abrirHorarioTerapeuta(t,nomeExibido);};
-    div.querySelector('.et-choose-btn:not(.et-btn-horario)').onclick=(e)=>{e.stopPropagation();confirmarEscolhaTerapeuta(t.id,nomeExibido);};
-    const toggleBtn=div.querySelector('.et-bio-toggle');
-    if(toggleBtn){
-      toggleBtn.onclick=(e)=>{
-        e.stopPropagation();
-        const bioEl=div.querySelector('.et-bio');
-        const expandido=bioEl.classList.toggle('et-bio-expanded');
-        toggleBtn.textContent=expandido?'Ver menos':'Ver mais';
-      };
-    }
-    return div;
-  });
-  grid.innerHTML='';
-  const recCards=cards.filter((c,i)=>filtrados[i]._rec),outros=cards.filter((c,i)=>!filtrados[i]._rec);
-  if(recCards.length){
+  const rec=filtrados.filter(t=>t._rec),outros=filtrados.filter(t=>!t._rec);
+
+  // 1) Recomendados juntos, em destaque, no topo
+  if(rec.length){
     const box=document.createElement('div');box.className='et-rec-box';
     box.innerHTML='<div class="et-rec-title">⭐ Recomendados para você</div><div class="et-rec-sub">Escolhidos com base no que você escreveu na ficha. A decisão é sua.</div>';
     const inner=document.createElement('div');inner.className='et-grid et-rec-inner';
-    recCards.forEach(c=>inner.appendChild(c));box.appendChild(inner);grid.appendChild(box);
-    if(outros.length){const t2=document.createElement('div');t2.className='et-sec-title';t2.textContent='Demais terapeutas';grid.appendChild(t2);}
+    rec.forEach(t=>inner.appendChild(criarCardTerapeuta(t)));
+    box.appendChild(inner);grid.appendChild(box);
   }
-  outros.forEach(c=>grid.appendChild(c));
-  cards.forEach(div=>{
-    const bioEl=div.querySelector('.et-bio');
-    const toggleBtn=div.querySelector('.et-bio-toggle');
-    if(bioEl&&toggleBtn&&bioEl.scrollHeight>bioEl.clientHeight+1){
-      toggleBtn.style.display='block';
+
+  // 2) Demais terapeutas: adulto individual (sem busca) = linhas por subcategoria, estilo Netflix;
+  //    infantil, casal ou busca ativa = grade simples
+  const SUBCAT_ORDEM=['Depressão e ansiedade','Luto e perdas','Dependência química','Trauma','Autoestima','Conflitos familiares','Dependência emocional','Propósito e identidade','Abuso'];
+  let linhas=[];
+  if(!termo&&currentTipo==='adulto'){
+    const porEsp={};
+    outros.forEach(t=>(t._esp||[]).forEach(e=>{
+      const chave=(e||'').trim();
+      if(!SUBCAT_ORDEM.includes(chave))return;
+      (porEsp[chave]=porEsp[chave]||[]).push(t);
+    }));
+    linhas=SUBCAT_ORDEM.filter(c=>porEsp[c]&&porEsp[c].length).map(c=>[c,porEsp[c]]);
+  }
+  if(linhas.length){
+    grid.style.display=rec.length?'':'none';
+    rows.style.display='';
+    if(rec.length){const t2=document.createElement('div');t2.className='et-sec-title';t2.textContent='Demais terapeutas';rows.appendChild(t2);}
+    linhas.forEach(([titulo,lista])=>rows.appendChild(criarLinhaTerapeutas(titulo,lista)));
+  }else{
+    rows.style.display='none';grid.style.display='';
+    if(outros.length){
+      if(rec.length){const t2=document.createElement('div');t2.className='et-sec-title';t2.textContent='Demais terapeutas';grid.appendChild(t2);}
+      outros.forEach(t=>grid.appendChild(criarCardTerapeuta(t)));
     }
-  });
-  if(selectedTherapistId){
-    const sel=document.getElementById('et-card-'+selectedTherapistId);
-    if(sel) sel.classList.add('selected');
   }
+  finalizarRenderCards();
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
@@ -1056,8 +1152,7 @@ function fecharHorarioTerapeuta(){
 }
 function selecionarTerapeutaCard(id,nome){
   document.querySelectorAll('.et-card').forEach(c=>c.classList.remove('selected'));
-  const card=document.getElementById('et-card-'+id);
-  if(card) card.classList.add('selected');
+  document.querySelectorAll('.et-card[data-tid="'+id+'"]').forEach(c=>c.classList.add('selected'));
   selectedTherapistId=id;selectedTherapistNome=nome;
 }
 
