@@ -423,7 +423,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .et-choose-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(45,212,170,.3)}
 .et-loading{text-align:center;padding:40px;color:#8898bb;font-family:'DM Sans',sans-serif;font-size:.85rem}
 .et-filters{padding:0 24px 4px;display:flex;flex-direction:column;gap:14px}
-.et-search-wrap{position:relative;max-width:340px}
+.et-search-wrap{position:relative;max-width:none;width:100%}
+@media(max-width:360px){.et-filters{padding:0 10px 4px}}
 .et-search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#5a6a8a;pointer-events:none}
 .et-search-wrap input{width:100%;background:#111d33;border:1px solid rgba(255,255,255,.1);border-radius:50px;padding:10px 16px 10px 38px;color:#eef2ff;font-family:'DM Sans',sans-serif;font-size:.82rem;outline:none;transition:border-color .2s}
 .et-search-wrap input:focus{border-color:#5b9cf6}
