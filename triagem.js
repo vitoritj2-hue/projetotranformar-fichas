@@ -133,9 +133,16 @@ function rankTherapists(ficha, terapeutas) {
       if (rs.some((r) => tem(p.bio, r)))   { score += PESOS.tema_bio; motivos.push(`bio: ${tema}`); }
     }
 
-    if (ficha.categoria && p.cats.length) {
-      if (p.cats.includes(norm(ficha.categoria))) { score += PESOS.categoria; motivos.push('categoria compatível'); }
-      else { score += PESOS.categoria_incompativel; motivos.push('fora da categoria'); }
+    if (ficha.categoria) {
+      const cat = norm(ficha.categoria);
+      const exige = cat === 'atendimento infantil' ? 'atendimento infantil' : cat === 'atendimento de casal' ? 'casal' : '';   // criança e casal: só quem declara atender
+      if (p.cats.length) {                       // quem declarou categorias: vale o que declarou
+        if (p.cats.includes(cat)) { score += PESOS.categoria; motivos.push('categoria compatível'); }
+        else { score += PESOS.categoria_incompativel; motivos.push('fora da categoria'); }
+      } else if (exige) {                        // cadastro antigo sem categorias: exige evidência nas especialidades
+        if (tem(p.areas, exige)) { score += PESOS.categoria; motivos.push('categoria compatível'); }
+        else { score += PESOS.categoria_incompativel; motivos.push('fora da categoria'); }
+      }
     }
 
     score += p.nivel * PESOS.nivel;
@@ -159,5 +166,31 @@ function rankTherapists(ficha, terapeutas) {
   return { gravidade, temas, avisos, ranking };
 }
 
-if (typeof module !== 'undefined') module.exports = { rankTherapists, detectarGravidade, detectarTemas, prepararTerapeuta, textos };
-if (typeof window !== 'undefined') window.Triagem = { rankTherapists, detectarGravidade, detectarTemas, prepararTerapeuta, textos };
+
+// ---------- escolha dos recomendados (rodízio entre terapeutas igualmente compatíveis) ----------
+// Sem isso, os mesmos 3-4 terapeutas (os de perfil mais completo) seriam recomendados quase sempre.
+const FAIR = {
+  n: 3,
+  margem: 8,        // "igualmente compatível" = até 8 pontos abaixo do melhor (cerca de 1,5 tema)
+  pesoCarga: 1,     // cada paciente ativo pesa 1 ponto contra o terapeuta
+  ruido: 0.5,       // sorteio leve: desempata quem tem a mesma carga
+  pesoScore: 0.08,  // entre iguais, prefere levemente a maior compatibilidade
+};
+function selecionarRecomendados(r, opt) {
+  const o = Object.assign({}, FAIR, opt || {}), rng = o.rng || Math.random;
+  const grave = r.gravidade.nivel !== 'normal';
+  const sem = ['perfil incompleto', 'fora da categoria'];
+  const cand = r.ranking.filter((x) => !x.motivos.includes('fora da categoria') && (grave
+    ? x.motivos.some((m) => m.startsWith('preparo p/ caso grave') || m.startsWith('nível 3'))
+    : x.motivos.some((m) => !sem.includes(m))));
+  if (!cand.length) return [];
+  const melhor = cand[0].score;
+  let pool = cand.filter((x) => x.score >= melhor - o.margem);
+  if (pool.length < o.n) pool = cand.slice(0, Math.max(o.n, pool.length));
+  const k = (x) => (Number(x.terapeuta._carga) || 0) * o.pesoCarga + rng() * o.ruido - x.score * o.pesoScore;
+  return pool.map((x) => ({ x, k: k(x) })).sort((a, b) => a.k - b.k).slice(0, o.n).map((e) => e.x)
+    .sort((a, b) => b.score - a.score);
+}
+
+if (typeof module !== 'undefined') module.exports = { rankTherapists, selecionarRecomendados, detectarGravidade, detectarTemas, prepararTerapeuta, textos };
+if (typeof window !== 'undefined') window.Triagem = { rankTherapists, selecionarRecomendados, detectarGravidade, detectarTemas, prepararTerapeuta, textos };

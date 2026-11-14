@@ -1203,11 +1203,7 @@ function _aplicarRecomendacao(){
   if(!window.Triagem||!window._triagemFicha)return;
   let r;try{r=Triagem.rankTherapists(window._triagemFicha,todosTerapeutas);}catch(e){console.error('triagem',e);return;}
   window._triagemResultado=r;
-  const semMotivo=['perfil incompleto','fora da categoria'];
-  const grave=r.gravidade.nivel!=='normal';
-  const top=r.ranking.filter(x=>!x.motivos.includes('fora da categoria')&&(grave
-    ?x.motivos.some(m=>m.startsWith('preparo p/ caso grave')||m.startsWith('nível 3'))
-    :x.motivos.some(m=>!semMotivo.includes(m)))).slice(0,3).map(x=>x.terapeuta);
+  const top=Triagem.selecionarRecomendados(r).map(x=>x.terapeuta);   // rodízio entre igualmente compatíveis (ver triagem.js)
   top.forEach(t=>{t._rec=true;});
   todosTerapeutas=[...top,...todosTerapeutas.filter(t=>!t._rec)];
   if(p)p.textContent=top.length?'Com base na sua ficha, destacamos os terapeutas mais indicados para você. A escolha final é sua.':'A seleção de um terapeuta é obrigatória para continuar.';
