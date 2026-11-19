@@ -170,7 +170,7 @@ function rankTherapists(ficha, terapeutas) {
 // ---------- escolha dos recomendados (rodízio entre terapeutas igualmente compatíveis) ----------
 // Sem isso, os mesmos 3-4 terapeutas (os de perfil mais completo) seriam recomendados quase sempre.
 const FAIR = {
-  rodizio: false,  // DESLIGADO por enquanto: recomenda os 3 mais compatíveis, sem preferir quem tem menos pacientes. Para religar: rodizio: true
+  rodizio: false,  // DESLIGADO por enquanto: não prefere quem tem menos pacientes; sorteia entre os igualmente compatíveis, todos com a mesma chance. Para religar o rodízio por carga: rodizio: true
   n: 3,
   margem: 8,        // "igualmente compatível" = até 8 pontos abaixo do melhor (cerca de 1,5 tema)
   pesoCarga: 1,     // cada paciente ativo pesa 1 ponto contra o terapeuta
@@ -185,10 +185,14 @@ function selecionarRecomendados(r, opt) {
     ? x.motivos.some((m) => m.startsWith('preparo p/ caso grave') || m.startsWith('nível 3'))
     : x.motivos.some((m) => !sem.includes(m))));
   if (!cand.length) return [];
-  if (!o.rodizio) return cand.slice(0, o.n);   // só compatibilidade: já vem ordenado do mais para o menos compatível
   const melhor = cand[0].score;
   let pool = cand.filter((x) => x.score >= melhor - o.margem);
   if (pool.length < o.n) pool = cand.slice(0, Math.max(o.n, pool.length));
+  if (!o.rodizio) {   // sorteio simples (embaralhamento) entre os compatíveis, sem olhar a carga de pacientes
+    const a = pool.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a.slice(0, o.n).sort((x, y) => y.score - x.score);
+  }
   const k = (x) => (Number(x.terapeuta._carga) || 0) * o.pesoCarga + rng() * o.ruido - x.score * o.pesoScore;
   return pool.map((x) => ({ x, k: k(x) })).sort((a, b) => a.k - b.k).slice(0, o.n).map((e) => e.x)
     .sort((a, b) => b.score - a.score);

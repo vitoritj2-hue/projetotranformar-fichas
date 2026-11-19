@@ -1210,7 +1210,11 @@ function _aplicarRecomendacao(){
   if(!window.Triagem||!window._triagemFicha)return;
   let r;try{r=Triagem.rankTherapists(window._triagemFicha,todosTerapeutas);}catch(e){console.error('triagem',e);return;}
   window._triagemResultado=r;
-  const top=Triagem.selecionarRecomendados(r).map(x=>x.terapeuta);   // rodízio entre igualmente compatíveis (ver triagem.js)
+  // sorteio entre os igualmente compatíveis (ver triagem.js); mantém o mesmo sorteio enquanto a ficha não mudar
+  const _k=JSON.stringify(window._triagemFicha);
+  let top=[];
+  if(window._recKey===_k&&Array.isArray(window._recIds)){top=window._recIds.map(id=>todosTerapeutas.find(t=>t.id===id)).filter(Boolean);}
+  if(!top.length){top=Triagem.selecionarRecomendados(r).map(x=>x.terapeuta);window._recKey=_k;window._recIds=top.map(t=>t.id);}
   top.forEach(t=>{t._rec=true;});
   todosTerapeutas=[...top,...todosTerapeutas.filter(t=>!t._rec)];
   if(p)p.textContent=top.length?'Com base na sua ficha, destacamos os terapeutas mais indicados para você. A escolha final é sua.':'A seleção de um terapeuta é obrigatória para continuar.';
