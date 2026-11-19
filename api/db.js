@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       const lim = parseInt(limit) || 1000;
       const ord = orderField === 'nome' ? '"nome"' : '"created_at"';
       const asc = order === 'asc' ? 'ASC' : 'DESC';
-      const rows = await sql(`SELECT ${PUBLIC_TERAPEUTA_COLS} FROM ${t} ORDER BY ${ord} ${asc} LIMIT ${lim}`);
+      const rows = await sql(`SELECT ${await publicTerapeutaCols()} FROM ${t} ORDER BY ${ord} ${asc} LIMIT ${lim}`);
       return res.json({ data: rows, error: null });
     }
     if (action === 'therapistLoad') {
@@ -74,11 +74,29 @@ export default async function handler(req, res) {
   }
 }
 
-const PUBLIC_TERAPEUTA_COLS = [
+const PUBLIC_TERAPEUTA_COLS_LIST = [
   'id','nome','nomeExibicao','esp','nivel','foto','bio','experiencia','modalidade','formacao','pos',
   'especialidades','customEspecialidades','categorias','subcategorias','bloqueado',
   'disponibilidade','disp_hora_inicio','disp_hora_fim','disp_obs','corCard','corCard2','iconeAbordagem',
-].map(c => `"${c}"`).join(', ');
+  'whatsapp', // exibido ao paciente depois que ele escolhe o terapeuta (botão "Entrar em contato")
+];
+// Só seleciona colunas que existem de fato (ex.: "whatsapp" só passa a existir quando
+// algum terapeuta salva o perfil pela primeira vez). Evita erro 500 na lista de terapeutas.
+let _colsCache = { t: 0, cols: null };
+async function publicTerapeutaCols() {
+  const now = Date.now();
+  let cols = _colsCache.cols && now - _colsCache.t < 60000 ? _colsCache.cols : null;
+  if (!cols) {
+    try {
+      const r = await sql(`SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'terapeutas'`);
+      const existentes = new Set(r.map(x => x.column_name));
+      cols = PUBLIC_TERAPEUTA_COLS_LIST.filter(c => existentes.has(c));
+    } catch (e) { cols = null; }
+    if (!cols || !cols.length) cols = PUBLIC_TERAPEUTA_COLS_LIST.filter(c => c !== 'whatsapp');
+    _colsCache = { t: now, cols };
+  }
+  return cols.map(c => `"${c}"`).join(', ');
+}
 const ALLOWED_TABLES = ['fichas_triagem', 'fichas_casal', 'terapeutas'];
 function sanitizeTable(t) {
   if (!ALLOWED_TABLES.includes(t)) throw new Error('Tabela nao permitida: ' + t);

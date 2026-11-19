@@ -860,8 +860,15 @@ tr:hover td{background:rgba(255,255,255,.015)}
   <div style="display:flex;flex-direction:column;align-items:center;gap:24px;padding:40px;text-align:center;max-width:400px">
     <div style="width:96px;height:96px;border-radius:50%;background:rgba(45,212,170,.15);border:2px solid rgba(45,212,170,.4);display:flex;align-items:center;justify-content:center;animation:successPop .5s cubic-bezier(.34,1.56,.64,1) both"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
     <div><div style="font-size:1.7rem;font-weight:800;color:#fff;letter-spacing:-.02em;margin-bottom:8px">Ficha Enviada!</div><div id="success-subtitle" style="font-size:.95rem;color:rgba(255,255,255,.6);line-height:1.6">Sua ficha de triagem foi recebida com sucesso.<br>Em breve nossa equipe entrará em contato.</div></div>
-    <div style="width:100%;height:3px;background:var(--bg4);border-radius:50px;overflow:hidden;margin-top:8px"><div id="success-bar" style="height:100%;width:0%;background:var(--grad);border-radius:50px;transition:width 2.5s linear"></div></div>
-    <span style="font-size:.75rem;color:rgba(255,255,255,.35)">Redirecionando em instantes...</span>
+    <div id="success-terapeuta" style="display:none;flex-direction:column;align-items:center;gap:6px;width:100%;padding:18px 16px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)">
+      <span style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45)">Seu terapeuta</span>
+      <strong id="success-ter-nome" style="font-size:1.15rem;color:#fff"></strong>
+      <span id="success-ter-tel" style="font-size:.95rem;color:rgba(255,255,255,.75)"></span>
+      <a id="success-ter-wa" href="#" target="_blank" rel="noopener" style="margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;padding:13px 18px;border-radius:50px;background:#25D366;color:#06260f;font-weight:700;font-size:.95rem;text-decoration:none">Entrar em contato</a>
+    </div>
+    <button id="success-ter-fechar" type="button" onclick="fecharSuccessOverlay()" style="display:none;background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:11px 28px;border-radius:50px;font-size:.85rem;cursor:pointer">Concluir</button>
+    <div id="success-bar-wrap" style="width:100%;height:3px;background:var(--bg4);border-radius:50px;overflow:hidden;margin-top:8px"><div id="success-bar" style="height:100%;width:0%;background:var(--grad);border-radius:50px;transition:width 2.5s linear"></div></div>
+    <span id="success-redir" style="font-size:.75rem;color:rgba(255,255,255,.35)">Redirecionando em instantes...</span>
   </div>
 </div>
 <style>@keyframes successPop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -1265,7 +1272,7 @@ async function _enviarFicha(){
     await addAdminNotification('casal','ni-green','Nova ficha de casal',res.p1_nome+' & '+res.p2_nome+' enviaram uma ficha.');
     await _notificarGravidade(res.p1_nome+' & '+res.p2_nome);
     document.querySelectorAll('#form-casal input,#form-casal select,#form-casal textarea').forEach(el=>{if(el.type==='checkbox')el.checked=false;else el.value='';});
-    _resetEscolha();showSuccessOverlay('Sua ficha de triagem de casal foi recebida com sucesso.<br>Em breve nossa equipe entrará em contato.');return;
+    const _ct=terapeutaEscolhidoContato('Somos '+res.p1_nome+' e '+res.p2_nome);_resetEscolha();showSuccessOverlay('Sua ficha de triagem de casal foi recebida com sucesso.<br>Em breve nossa equipe entrará em contato.',_ct);return;
   }
   const errors=validateForm(currentTipo);
   if(errors.length){banner.style.display='block';document.querySelector('.field-error,.field-error-group')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
@@ -1280,11 +1287,46 @@ async function _enviarFicha(){
   await _notificarGravidade(res.nome);
   document.querySelectorAll('#form-adulto input:not([type=checkbox]),#form-adulto textarea,#form-adulto select,#form-infantil input:not([type=checkbox]),#form-infantil textarea,#form-infantil select').forEach(el=>{el.tagName==='SELECT'?el.selectedIndex=0:el.value='';});
   document.querySelectorAll('#a-sintomas input,#i-sintomas input').forEach(c=>c.checked=false);
-  _resetEscolha();showSuccessOverlay('Sua ficha de triagem foi recebida com sucesso.<br>Em breve nossa equipe entrará em contato.');
+  const _ct=terapeutaEscolhidoContato(res.tipo==='Infantil'&&res.resp?('Sou '+res.resp+', responsável por '+res.nome):('Sou '+res.nome));_resetEscolha();showSuccessOverlay('Sua ficha de triagem foi recebida com sucesso.<br>Em breve nossa equipe entrará em contato.',_ct);
 }
 
 // ══ SUCESSO ══
-function showSuccessOverlay(subtitle){const ov=document.getElementById('success-overlay'),sub=document.getElementById('success-subtitle'),bar=document.getElementById('success-bar');if(subtitle)sub.innerHTML=subtitle;ov.style.display='flex';requestAnimationFrame(()=>{bar.style.width='100%';});setTimeout(()=>{ov.style.display='none';bar.style.width='0%';bar.style.transition='none';requestAnimationFrame(()=>{bar.style.transition='width 2.5s linear';});goHome();},2800);}
+function fmtWhats(v){const d=String(v==null?'':v).replace(/\D/g,'').slice(0,11);if(d.length>10)return'('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);if(d.length>6)return'('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);if(d.length>2)return'('+d.slice(0,2)+') '+d.slice(2);return d?'('+d:'';}
+// Terapeuta escolhido + link do WhatsApp (o número é guardado só com dígitos, DDD + número).
+// Chamar ANTES de _resetEscolha(), que zera o terapeuta selecionado.
+function terapeutaEscolhidoContato(intro){
+  const t=(typeof todosTerapeutas!=='undefined'?todosTerapeutas:[]).find(x=>x.id===selectedTherapistId);
+  if(!t)return null;
+  const nome=(t.nomeExibicao&&t.nomeExibicao.trim())?t.nomeExibicao.trim():t.nome;
+  const d=String(t.whatsapp||'').replace(/\D/g,'');
+  let link='';
+  if(d.length>=10&&d.length<=11){
+    const msg='Olá, '+nome+'! '+intro+'. Acabei de preencher minha ficha no Projeto Terapêutico Transformar e escolhi você como terapeuta. Podemos combinar meu atendimento?';
+    link='https://wa.me/55'+d+'?text='+encodeURIComponent(msg);
+  }
+  return {nome:nome,tel:link?fmtWhats(d):'',link:link};
+}
+function fecharSuccessOverlay(){
+  document.getElementById('success-overlay').style.display='none';
+  document.getElementById('success-terapeuta').style.display='none';
+  document.getElementById('success-ter-fechar').style.display='none';
+  document.getElementById('success-bar-wrap').style.display='';
+  document.getElementById('success-redir').style.display='';
+  goHome();
+}
+function showSuccessOverlay(subtitle,ter){const ov=document.getElementById('success-overlay'),sub=document.getElementById('success-subtitle'),bar=document.getElementById('success-bar');if(subtitle)sub.innerHTML=subtitle;
+  const box=document.getElementById('success-terapeuta'),fechar=document.getElementById('success-ter-fechar'),barWrap=document.getElementById('success-bar-wrap'),redir=document.getElementById('success-redir');
+  if(ter&&ter.link){
+    // Com WhatsApp do terapeuta: a tela fica aberta até o paciente tocar em "Concluir"
+    sub.innerHTML='Sua ficha de triagem foi recebida com sucesso.<br>Para agilizar, fale agora com o seu terapeuta:';
+    document.getElementById('success-ter-nome').textContent=ter.nome;
+    document.getElementById('success-ter-tel').textContent=ter.tel;
+    document.getElementById('success-ter-wa').href=ter.link;
+    box.style.display='flex';fechar.style.display='inline-block';barWrap.style.display='none';redir.style.display='none';
+    ov.style.display='flex';return;
+  }
+  box.style.display='none';fechar.style.display='none';barWrap.style.display='';redir.style.display='';
+  ov.style.display='flex';requestAnimationFrame(()=>{bar.style.width='100%';});setTimeout(()=>{ov.style.display='none';bar.style.width='0%';bar.style.transition='none';requestAnimationFrame(()=>{bar.style.transition='width 2.5s linear';});goHome();},2800);}
 
 // ══ CONFIGURAÇÕES ══
 const CFG_KEY='ptt_accessibility';
