@@ -171,7 +171,7 @@ function rankTherapists(ficha, terapeutas) {
 // Sem isso, os mesmos 3-4 terapeutas (os de perfil mais completo) seriam recomendados quase sempre.
 const FAIR = {
   rodizio: false,  // DESLIGADO por enquanto: não prefere quem tem menos pacientes; sorteia entre os igualmente compatíveis, todos com a mesma chance. Para religar o rodízio por carga: rodizio: true
-  n: 3,
+  n: 6,        // até 6 recomendados
   margem: 8,        // "igualmente compatível" = até 8 pontos abaixo do melhor (cerca de 1,5 tema)
   pesoCarga: 1,     // cada paciente ativo pesa 1 ponto contra o terapeuta
   ruido: 0.5,       // sorteio leve: desempata quem tem a mesma carga
