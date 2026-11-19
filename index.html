@@ -1007,7 +1007,7 @@ async function carregarTerapeutas(){
       return Object.assign({},t,{_esp:sub,_carga:cargaPorId[t.id]||0});
     });
     // Ranking justo: menos pacientes ativos primeiro, mais pacientes por último
-    todosTerapeutas.sort((a,b)=>a._carga-b._carga||a.nome.localeCompare(b.nome,'pt-BR'));
+    todosTerapeutas.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));   // sem preferência por carga de pacientes (rodízio desligado)
     _aplicarRecomendacao();
     renderTerapeutas();
   }catch(e){grid.innerHTML='<div class="et-loading">Erro ao carregar terapeutas.</div>';console.error(e);}

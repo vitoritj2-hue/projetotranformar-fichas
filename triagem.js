@@ -170,6 +170,7 @@ function rankTherapists(ficha, terapeutas) {
 // ---------- escolha dos recomendados (rodízio entre terapeutas igualmente compatíveis) ----------
 // Sem isso, os mesmos 3-4 terapeutas (os de perfil mais completo) seriam recomendados quase sempre.
 const FAIR = {
+  rodizio: false,  // DESLIGADO por enquanto: recomenda os 3 mais compatíveis, sem preferir quem tem menos pacientes. Para religar: rodizio: true
   n: 3,
   margem: 8,        // "igualmente compatível" = até 8 pontos abaixo do melhor (cerca de 1,5 tema)
   pesoCarga: 1,     // cada paciente ativo pesa 1 ponto contra o terapeuta
@@ -184,6 +185,7 @@ function selecionarRecomendados(r, opt) {
     ? x.motivos.some((m) => m.startsWith('preparo p/ caso grave') || m.startsWith('nível 3'))
     : x.motivos.some((m) => !sem.includes(m))));
   if (!cand.length) return [];
+  if (!o.rodizio) return cand.slice(0, o.n);   // só compatibilidade: já vem ordenado do mais para o menos compatível
   const melhor = cand[0].score;
   let pool = cand.filter((x) => x.score >= melhor - o.margem);
   if (pool.length < o.n) pool = cand.slice(0, Math.max(o.n, pool.length));
