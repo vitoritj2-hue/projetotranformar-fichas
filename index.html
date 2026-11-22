@@ -372,7 +372,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
   .et-rec-box{padding:12px 8px 14px;border-radius:16px}
   .et-rec-title{font-size:.9rem}
   .et-rec-sub{font-size:.66rem;margin-bottom:10px}
-  .et-rec-inner{flex-wrap:wrap;gap:6px}
+  .et-rec-box .et-rec-inner{flex-wrap:wrap;gap:6px;padding:0}
   .et-rec-inner .et-card{flex:0 0 calc((100% - 12px)/3);min-width:0;max-width:none;border-radius:12px}
   .et-rec-inner .et-card-body{padding:6px 5px 8px;gap:4px}
   .et-rec-inner .et-info h4{font-size:.72rem;line-height:1.15;word-break:break-word}
@@ -382,6 +382,18 @@ tr:hover td{background:rgba(255,255,255,.015)}
   .et-rec-inner .et-photo-wrap .et-initials{font-size:1.4rem}
 }
 .et-card.et-rec{border-color:rgba(45,212,170,.5)}
+/* ── Destaque animado dos recomendados ── */
+@keyframes etRecGlow{0%,100%{box-shadow:0 0 0 1px rgba(45,212,170,.12),0 18px 50px rgba(45,212,170,.08)}50%{box-shadow:0 0 0 1px rgba(45,212,170,.38),0 18px 64px rgba(45,212,170,.24)}}
+@keyframes etRecBoxIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes etRecIn{from{opacity:0;transform:translateY(22px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes etStar{0%,100%{transform:scale(1) rotate(0deg);filter:drop-shadow(0 0 0 rgba(255,214,102,0))}50%{transform:scale(1.28) rotate(14deg);filter:drop-shadow(0 0 6px rgba(255,214,102,.8))}}
+@keyframes etShine{0%,55%{background-position:160% 0}100%{background-position:-60% 0}}
+.et-rec-box{animation:etRecGlow 3.6s ease-in-out infinite}
+.et-rec-box.et-rec-anim{animation:etRecBoxIn .6s cubic-bezier(.2,.8,.2,1) backwards,etRecGlow 3.6s ease-in-out .6s infinite}
+.et-rec-star{display:inline-block;animation:etStar 2.6s ease-in-out infinite}
+.et-rec-box.et-rec-anim .et-rec-inner .et-card{animation:etRecIn .6s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0)*110ms + 250ms)}
+.et-rec-inner .et-card::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.13) 50%,transparent 65%);background-size:260% 100%;background-position:160% 0;animation:etShine 5.5s ease-in-out infinite;animation-delay:calc(var(--i,0)*.7s + 1.4s)}
+@media (prefers-reduced-motion:reduce){.et-rec-box,.et-rec-box.et-rec-anim,.et-rec-star,.et-rec-box.et-rec-anim .et-rec-inner .et-card,.et-rec-inner .et-card::after{animation:none!important}}
 .et-rows{display:flex;flex-direction:column;gap:32px;padding:6px 0 28px;overflow-y:auto;overflow-x:hidden}
 .et-rows>.et-sec-title{margin:6px 24px 0;grid-column:auto}
 .et-row-title{font-family:'DM Sans',sans-serif;font-size:1.02rem;font-weight:700;color:#eef2ff;padding:0 24px;margin-bottom:12px;letter-spacing:-.005em;display:flex;align-items:baseline;gap:8px}
@@ -568,6 +580,22 @@ tr:hover td{background:rgba(255,255,255,.015)}
     </div>
     <div class="et-rows" id="et-rows" style="display:none"></div>
     <div class="et-empty" id="et-empty" style="display:none">Nenhum terapeuta encontrado com esse termo.</div>
+  </div>
+
+  <div class="screen" id="screen-escolha-horario">
+    <div class="triagem-header">
+      <button class="back-btn" onclick="voltarDaEscolhaHorario()">←</button>
+      <h2>Escolha um Horário</h2>
+      <span class="tipo-pill" id="eh-tipo-pill">Individual</span>
+    </div>
+    <div class="triagem-body">
+      <div style="margin-bottom:18px">
+        <strong id="eh-terapeuta-nome" style="font-size:.92rem"></strong>
+        <div style="font-size:.78rem;color:var(--text2);margin-top:4px">Selecione o dia e horário de sua preferência. A confirmação final é combinada com o terapeuta.</div>
+      </div>
+      <div id="eh-slots"></div>
+      <button class="submit-btn" id="eh-continuar-btn" onclick="confirmarHorario()" disabled style="opacity:.5;cursor:not-allowed">Confirmar horário e enviar ficha</button>
+    </div>
   </div>
 
   <div class="modal-overlay" id="horario-overlay" onclick="if(event.target===this)fecharHorarioTerapeuta()">
@@ -864,6 +892,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <span style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.45)">Seu terapeuta</span>
       <strong id="success-ter-nome" style="font-size:1.15rem;color:#fff"></strong>
       <span id="success-ter-tel" style="font-size:.95rem;color:rgba(255,255,255,.75)"></span>
+      <span id="success-ter-horario" style="display:none;font-size:.85rem;color:#7fe3c8;margin-top:2px"></span>
       <a id="success-ter-wa" href="#" target="_blank" rel="noopener" style="margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;padding:13px 18px;border-radius:50px;background:#25D366;color:#06260f;font-weight:700;font-size:.95rem;text-decoration:none">Entrar em contato</a>
     </div>
     <button id="success-ter-fechar" type="button" onclick="fecharSuccessOverlay()" style="display:none;background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:11px 28px;border-radius:50px;font-size:.85rem;cursor:pointer">Concluir</button>
@@ -918,7 +947,10 @@ async function carregarCidades(prefixo){
 }
 document.addEventListener('DOMContentLoaded',popularEstados);
 
-let currentTipo='adulto';let selectedTherapistId=null;let selectedTherapistNome='';
+// Sistema de recomendação de terapeutas: DESLIGADO por enquanto (todos aparecem na lista, sem destaque).
+// Para religar: RECOMENDACAO_ATIVA=true. A triagem de gravidade (mensagem de apoio e alerta no painel) continua funcionando.
+const RECOMENDACAO_ATIVA=false;
+let currentTipo='adulto';let selectedTherapistId=null;let selectedTherapistNome='';let selectedHorarioLabel='';
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 function gv(id){const el=document.getElementById(id);return el?el.value.trim():'';}
@@ -941,7 +973,7 @@ function voltarDaApresentacao(){if(currentTipo==='infantil'){goHome();}else{docu
 function voltarDaTriagem(){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-apresentacao').classList.add('active');}
 function avancarTriagem(){
   // Novo fluxo: primeiro a ficha; o terapeuta é recomendado/escolhido depois (ver submitTriagem)
-  selectedTherapistId=null;selectedTherapistNome='';
+  selectedTherapistId=null;selectedTherapistNome='';selectedHorarioLabel='';
   _irParaTriagem();
   atualizarBannerTerapeuta();
 }
@@ -964,11 +996,68 @@ function voltarDaEscolha(){
   document.getElementById('screen-triagem').classList.add('active');
 }
 
+function parseDisp(v){
+  if(v&&typeof v==='object'&&!Array.isArray(v))return v;
+  if(typeof v==='string'&&v.trim()){try{const p=JSON.parse(v);return(p&&typeof p==='object'&&!Array.isArray(p))?p:{};}catch(e){}}
+  return{};
+}
 function confirmarEscolhaTerapeuta(id,nome){
   if(!id){alert('Por favor, selecione um terapeuta para continuar.');return;}
   selectedTherapistId=id;
   selectedTherapistNome=nome||'';
-  _voltarAoFormComTerapeuta();
+  selectedHorarioLabel='';
+  const t=todosTerapeutas.find(x=>x.id===id);
+  const disp=parseDisp(t&&t.disponibilidade);
+  const temHorarios=Object.values(disp).some(s=>Array.isArray(s)&&s.length>0);
+  // Fluxo: ficha -> terapeuta -> horário do terapeuta -> envio -> tela de contato por WhatsApp
+  if(t&&temHorarios){abrirEscolhaHorario(t,selectedTherapistNome);return;}
+  _voltarAoFormComTerapeuta();   // terapeuta sem horários cadastrados: confirma no formulário e envia
+}
+function abrirEscolhaHorario(t,nomeExibido){
+  document.getElementById('eh-terapeuta-nome').textContent='Horários de '+(nomeExibido||t.nome);
+  const pill=document.getElementById('eh-tipo-pill');if(pill)pill.textContent=currentTipo==='casal'?'Casal':currentTipo==='infantil'?'Infantil':'Individual';
+  const wd=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const disp=parseDisp(t.disponibilidade);
+  const diasAtivos=Object.entries(disp).filter(([d,sl])=>Array.isArray(sl)&&sl.length>0).sort((a,b)=>+a[0]-+b[0]);
+  const wrap=document.getElementById('eh-slots');
+  wrap.innerHTML='';
+  diasAtivos.forEach(([d,slots])=>{
+    const bloco=document.createElement('div');bloco.style.marginBottom='18px';
+    const tit=document.createElement('div');tit.style.cssText='font-size:.74rem;font-weight:700;color:var(--text);margin-bottom:8px';tit.textContent=wd[+d]||'';
+    const fila=document.createElement('div');fila.style.cssText='display:flex;flex-wrap:wrap;gap:8px';
+    slots.forEach(sl=>{
+      const b=document.createElement('button');b.type='button';b.className='eh-slot-btn';
+      b.style.cssText='padding:8px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.78rem;cursor:pointer;transition:all .2s';
+      b.textContent=sl.ini+'–'+sl.fim;
+      b.onclick=()=>selecionarHorarioSlot(b,wd[+d],sl.ini+'–'+sl.fim);
+      fila.appendChild(b);
+    });
+    bloco.appendChild(tit);bloco.appendChild(fila);wrap.appendChild(bloco);
+  });
+  if(t.disp_obs){const o=document.createElement('div');o.style.cssText='margin-top:4px;font-size:.74rem;color:var(--text3);font-style:italic';o.textContent=t.disp_obs;wrap.appendChild(o);}
+  const cBtn=document.getElementById('eh-continuar-btn');cBtn.disabled=true;cBtn.style.opacity='.5';cBtn.style.cursor='not-allowed';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-escolha-horario').classList.add('active');
+  window.scrollTo(0,0);
+}
+function selecionarHorarioSlot(btn,diaLabel,horaLabel){
+  document.querySelectorAll('.eh-slot-btn').forEach(b=>{b.style.background='var(--bg3)';b.style.borderColor='var(--border2)';b.style.color='var(--text2)';});
+  btn.style.background='rgba(79,142,247,.12)';btn.style.borderColor='var(--blue)';btn.style.color='var(--blue)';
+  selectedHorarioLabel=diaLabel+' '+horaLabel;
+  const cBtn=document.getElementById('eh-continuar-btn');
+  cBtn.disabled=false;cBtn.style.opacity='1';cBtn.style.cursor='pointer';
+}
+async function confirmarHorario(){
+  if(!selectedHorarioLabel)return;
+  const b=document.getElementById('eh-continuar-btn');
+  b.disabled=true;b.textContent='Enviando...';
+  try{await _enviarFicha();}
+  finally{b.disabled=false;b.style.opacity='1';b.textContent='Confirmar horário e enviar ficha';}
+}
+function voltarDaEscolhaHorario(){
+  selectedTherapistId=null;selectedTherapistNome='';selectedHorarioLabel='';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-escolha-terapeuta').classList.add('active');
 }
 
 function _irParaTriagem(){
@@ -1113,9 +1202,10 @@ function renderTerapeutas(){
   // 1) Recomendados juntos, em destaque, no topo
   if(rec.length){
     const box=document.createElement('div');box.className='et-rec-box';
-    box.innerHTML='<div class="et-rec-title">⭐ Recomendados para você</div><div class="et-rec-sub">Escolhidos com base no que você escreveu na ficha. A decisão é sua.</div>';
+    box.innerHTML='<div class="et-rec-title"><span class="et-rec-star">⭐</span> Recomendados para você</div><div class="et-rec-sub">Escolhidos com base no que você escreveu na ficha. A decisão é sua.</div>';
     const inner=document.createElement('div');inner.className='et-grid et-rec-inner';
-    rec.forEach(t=>inner.appendChild(criarCardTerapeuta(t)));
+    rec.forEach((t,i)=>{const c=criarCardTerapeuta(t);c.style.setProperty('--i',i);inner.appendChild(c);});
+    if(!window._recAnimado){box.classList.add('et-rec-anim');window._recAnimado=true;}   // entrada animada só na 1ª vez (não repete ao digitar na busca)
     box.appendChild(inner);grid.appendChild(box);
   }
 
@@ -1155,7 +1245,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 function abrirHorarioTerapeuta(t,nomeExibido){
   document.getElementById('horario-nome').textContent='🗓 Horário de '+(nomeExibido||t.nome);
   const wd=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-  const disp=t.disponibilidade||{};
+  const disp=parseDisp(t.disponibilidade);
   const diasAtivos=Object.entries(disp).filter(([d,s])=>Array.isArray(s)&&s.length>0).sort((a,b)=>+a[0]-+b[0]);
   const conteudo=document.getElementById('horario-conteudo');
   conteudo.innerHTML=diasAtivos.length
@@ -1210,14 +1300,16 @@ function _aplicarRecomendacao(){
   if(!window.Triagem||!window._triagemFicha)return;
   let r;try{r=Triagem.rankTherapists(window._triagemFicha,todosTerapeutas);}catch(e){console.error('triagem',e);return;}
   window._triagemResultado=r;
+  let top=[];
+  if(RECOMENDACAO_ATIVA){
   // sorteio entre os igualmente compatíveis (ver triagem.js); mantém o mesmo sorteio enquanto a ficha não mudar
   const _k=JSON.stringify(window._triagemFicha);
-  let top=[];
   if(window._recKey===_k&&Array.isArray(window._recIds)){top=window._recIds.map(id=>todosTerapeutas.find(t=>t.id===id)).filter(Boolean);}
-  if(!top.length){top=Triagem.selecionarRecomendados(r).map(x=>x.terapeuta);window._recKey=_k;window._recIds=top.map(t=>t.id);}
+  if(!top.length){top=Triagem.selecionarRecomendados(r).map(x=>x.terapeuta);window._recKey=_k;window._recIds=top.map(t=>t.id);window._recAnimado=false;}
   top.forEach(t=>{t._rec=true;});
   todosTerapeutas=[...top,...todosTerapeutas.filter(t=>!t._rec)];
-  if(p)p.textContent=top.length?'Com base na sua ficha, destacamos os terapeutas mais indicados para você. A escolha final é sua.':'A seleção de um terapeuta é obrigatória para continuar.';
+  }
+  if(p)p.textContent=top.length?'Com base na sua ficha, destacamos os terapeutas mais indicados para você. A escolha final é sua.':(RECOMENDACAO_ATIVA?'A seleção de um terapeuta é obrigatória para continuar.':'Escolha o terapeuta de sua preferência. A seleção é obrigatória para continuar.');
   if(msg&&r.gravidade.nivel==='critico'){
     msg.innerHTML='<div style="margin:0 18px 14px;padding:12px 14px;border-radius:12px;background:rgba(91,156,246,.1);border:1px solid rgba(91,156,246,.3);font-size:.82rem;color:var(--text)">💙 Se você estiver pensando em se machucar ou em tirar a própria vida, ligue agora para o <strong>CVV: 188</strong> (gratuito, 24 horas). Você não precisa passar por isso sozinho(a).</div>';
   }
@@ -1244,8 +1336,8 @@ function _voltarAoFormComTerapeuta(){
   atualizarBannerTerapeuta();
   window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 }
-function trocarTerapeuta(){selectedTherapistId=null;selectedTherapistNome='';atualizarBannerTerapeuta();submitTriagem();}
-function _resetEscolha(){selectedTherapistId=null;selectedTherapistNome='';window._triagemFicha=null;atualizarBannerTerapeuta();}
+function trocarTerapeuta(){selectedTherapistId=null;selectedTherapistNome='';selectedHorarioLabel='';atualizarBannerTerapeuta();submitTriagem();}
+function _resetEscolha(){selectedTherapistId=null;selectedTherapistNome='';selectedHorarioLabel='';window._triagemFicha=null;atualizarBannerTerapeuta();}
 async function submitTriagem(){
   if(!selectedTherapistId){
     if(!_validarAntesDeEscolher())return;
@@ -1270,6 +1362,7 @@ async function _enviarFicha(){
     banner.style.display='none';btn.disabled=true;btn.textContent='Enviando...';
     const conflitos=Array.from(document.querySelectorAll('#c-conflitos input:checked')).map(c=>c.value);
     const data={p1_nome:gv('c-p1-nome'),p1_idade:gv('c-p1-idade'),p1_profissao:gv('c-p1-profissao'),p1_telefone:gv('c-p1-tel'),p1_religiao:gv('c-p1-religiao'),p1_ecivil:gv('c-p1-ecivil'),p2_nome:gv('c-p2-nome'),p2_idade:gv('c-p2-idade'),p2_profissao:gv('c-p2-profissao'),p2_telefone:gv('c-p2-tel'),p2_religiao:gv('c-p2-religiao'),p2_ecivil:gv('c-p2-ecivil'),tempo_juntos:gv('c-tempo'),estado:gv('c-estado'),cidade:gv('c-cidade'),filhos:gv('c-filhos'),motivacao:gv('c-motivacao'),conflitos:JSON.stringify(conflitos),conflito_outro:gv('c-conflito-outro'),ansiedade:gv('c-ansiedade'),depressao:gv('c-depressao'),crises_emocionais:gv('c-crises'),terapia_anterior:gv('c-terapia'),conexao_emocional:gv('c-conexao'),expectativas:gv('c-expectativas'),dedicacao_p1:gv('c-ded-p1'),dedicacao_p2:gv('c-ded-p2'),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,therapistId:selectedTherapistId};
+    if(selectedHorarioLabel)data.horarioPreferido=selectedHorarioLabel;
     const{data:res,error}=await db.from('fichas_casal').insert(data).select().single();
     btn.disabled=false;btn.textContent='Enviar Ficha de Triagem';
     if(error){console.error(error);showToast('Erro ao enviar. Tente novamente.');return;}
@@ -1284,6 +1377,7 @@ async function _enviarFicha(){
   let d;
   if(currentTipo==='adulto'){d={tipo:'Adulto',nome:gv('a-nome'),nasc:gv('a-nasc'),cpf:gv('a-cpf'),tel:gv('a-tel'),email:gv('a-email'),sexo:gv('a-sexo'),ecivil:gv('a-ecivil'),estado:gv('a-estado'),cidade:gv('a-cidade'),queixa:gv('a-queixa'),terapia:gv('a-terapia'),med:gv('a-med'),sintomas:JSON.stringify(getSintomas('a-sintomas')),religiao:gv('a-religiao'),renda:gv('a-renda'),auxilio:gv('a-auxilio'),motivacao:gv('a-motivacao'),expectativa:gv('a-expectativa'),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,devolutiva:'',obs:'',devolutivas:{},therapistId:selectedTherapistId,preferenciaT:selectedTherapistNome};}
   else{d={tipo:'Infantil',nome:gv('i-nome'),nasc:gv('i-nasc'),sexo:gv('i-sexo'),escola:gv('i-escola'),reside:gv('i-reside'),estado:gv('i-estado'),cidade:gv('i-cidade'),resp:gv('i-resp'),parent:gv('i-parent'),tel:gv('i-tel'),email:gv('i-email'),queixa:gv('i-queixa'),hist:gv('i-hist'),sintomas:JSON.stringify(getSintomas('i-sintomas')),religiao:gv('i-religiao'),renda:gv('i-renda'),auxilio:gv('i-auxilio'),motivacao:gv('i-motivacao'),expectativa:gv('i-expectativa'),assinatura_consentimento:gv('consent-signature'),status:'espera',sessoes:0,devolutiva:'',obs:'',devolutivas:{},therapistId:selectedTherapistId,preferenciaT:selectedTherapistNome};}
+  if(selectedHorarioLabel)d.horarioPreferido=selectedHorarioLabel;
   const{data:res,error}=await db.from('fichas_triagem').insert(d).select().single();
   btn.disabled=false;btn.textContent='Enviar Ficha de Triagem';
   if(error){console.error(error);showToast('Erro ao enviar. Tente novamente.');return;}
@@ -1303,12 +1397,13 @@ function terapeutaEscolhidoContato(intro){
   if(!t)return null;
   const nome=(t.nomeExibicao&&t.nomeExibicao.trim())?t.nomeExibicao.trim():t.nome;
   const d=String(t.whatsapp||'').replace(/\D/g,'');
+  const hor=selectedHorarioLabel||'';
   let link='';
   if(d.length>=10&&d.length<=11){
-    const msg='Olá, '+nome+'! '+intro+'. Acabei de preencher minha ficha no Projeto Terapêutico Transformar e escolhi você como terapeuta. Podemos combinar meu atendimento?';
+    const msg='Olá, '+nome+'! '+intro+'. Acabei de preencher minha ficha no Projeto Terapêutico Transformar e escolhi você como terapeuta'+(hor?', com interesse no horário de '+hor:'')+'. Podemos combinar meu atendimento?';
     link='https://wa.me/55'+d+'?text='+encodeURIComponent(msg);
   }
-  return {nome:nome,tel:link?fmtWhats(d):'',link:link};
+  return {nome:nome,tel:link?fmtWhats(d):'',link:link,horario:hor};
 }
 function fecharSuccessOverlay(){
   document.getElementById('success-overlay').style.display='none';
@@ -1325,11 +1420,13 @@ function showSuccessOverlay(subtitle,ter){const ov=document.getElementById('succ
     sub.innerHTML='Sua ficha de triagem foi recebida com sucesso.<br>Para agilizar, fale agora com o seu terapeuta:';
     document.getElementById('success-ter-nome').textContent=ter.nome;
     document.getElementById('success-ter-tel').textContent=ter.tel;
+    const eh=document.getElementById('success-ter-horario');if(ter.horario){eh.textContent='🗓 Horário escolhido: '+ter.horario;eh.style.display='block';}else{eh.style.display='none';}
     document.getElementById('success-ter-wa').href=ter.link;
     box.style.display='flex';fechar.style.display='inline-block';barWrap.style.display='none';redir.style.display='none';
     ov.style.display='flex';return;
   }
   box.style.display='none';fechar.style.display='none';barWrap.style.display='';redir.style.display='';
+  if(ter&&ter.horario){const d=document.createElement('div');d.style.cssText='margin-top:10px;color:#7fe3c8';d.textContent='🗓 Horário escolhido: '+ter.horario;sub.appendChild(d);}
   ov.style.display='flex';requestAnimationFrame(()=>{bar.style.width='100%';});setTimeout(()=>{ov.style.display='none';bar.style.width='0%';bar.style.transition='none';requestAnimationFrame(()=>{bar.style.transition='width 2.5s linear';});goHome();},2800);}
 
 // ══ CONFIGURAÇÕES ══
