@@ -594,7 +594,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
         <div style="font-size:.78rem;color:var(--text2);margin-top:4px">Selecione o dia e horário de sua preferência. A confirmação final é combinada com o terapeuta.</div>
       </div>
       <div id="eh-slots"></div>
-      <button class="submit-btn" id="eh-continuar-btn" onclick="confirmarHorario()" disabled style="opacity:.5;cursor:not-allowed">Continuar → preencher a ficha</button>
+      <button class="submit-btn" id="eh-continuar-btn" onclick="confirmarHorario()" disabled style="opacity:.5;cursor:not-allowed">Confirmar horário e enviar ficha</button>
     </div>
   </div>
 
@@ -862,7 +862,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 
     <div id="terapeuta-escolhido" style="display:none;background:rgba(45,212,170,.08);border:1px solid rgba(45,212,170,.3);border-radius:10px;padding:12px 16px;margin-top:18px;font-size:.82rem;color:var(--teal);align-items:center;justify-content:space-between;gap:10px"><span id="terapeuta-escolhido-nome"></span><button type="button" onclick="trocarTerapeuta()" style="background:none;border:1px solid currentColor;color:inherit;border-radius:50px;padding:4px 12px;font-size:.72rem;cursor:pointer">Trocar</button></div>
     <div id="form-error-banner" style="display:none;background:rgba(245,101,101,.08);border:1px solid rgba(245,101,101,.3);border-radius:10px;padding:12px 16px;margin-top:18px;font-size:.82rem;color:var(--red)">Preencha todos os campos obrigatórios.</div>
-    <button class="submit-btn" id="submit-triagem-btn" onclick="submitTriagem()" disabled style="opacity:.5;cursor:not-allowed">Enviar Ficha de Triagem</button>
+    <button class="submit-btn" id="submit-triagem-btn" onclick="submitTriagem()" disabled style="opacity:.5;cursor:not-allowed">Continuar → escolher terapeuta</button>
   </div>
 </div>
 
@@ -970,27 +970,12 @@ function goToTriagem(tipo){
 }
 function selecionarTipoAdulto(tipo){currentTipo=tipo==='casal'?'casal':'adulto';document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-apresentacao').classList.add('active');document.getElementById('apres-tipo-pill').textContent=tipo==='casal'?'Casal':'Individual';}
 function voltarDaApresentacao(){if(currentTipo==='infantil'){goHome();}else{document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-tipo-adulto').classList.add('active');}}
-function voltarDaTriagem(){
-  // Da ficha volta para o passo anterior: horários do terapeuta (se ele tem) ou lista de terapeutas
-  const t=selectedTherapistId?todosTerapeutas.find(x=>x.id===selectedTherapistId):null;
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  if(t&&_terapeutaTemHorarios(t)){document.getElementById('screen-escolha-horario').classList.add('active');}
-  else{document.getElementById('screen-escolha-terapeuta').classList.add('active');}
-  window.scrollTo(0,0);
-}
+function voltarDaTriagem(){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-apresentacao').classList.add('active');}
 function avancarTriagem(){
-  // Fluxo: 1) escolher terapeuta -> 2) escolher horário dele -> 3) preencher a ficha -> 4) tela "Entrar em contato" (WhatsApp)
+  // Novo fluxo: primeiro a ficha; o terapeuta é recomendado/escolhido depois (ver submitTriagem)
   selectedTherapistId=null;selectedTherapistNome='';selectedHorarioLabel='';
+  _irParaTriagem();
   atualizarBannerTerapeuta();
-  _irParaEscolhaTerapeuta();
-}
-async function _irParaEscolhaTerapeuta(){
-  const pill=document.getElementById('et-tipo-pill');
-  if(pill)pill.textContent=currentTipo==='casal'?'Casal':currentTipo==='infantil'?'Infantil':'Individual';
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-escolha-terapeuta').classList.add('active');
-  window.scrollTo(0,0);
-  await carregarTerapeutas();
 }
 function toggleDotsMenu(){const m=document.getElementById('dots-menu');m.style.display=m.style.display==='block'?'none':'block';}
 function closeDotsMenu(){const m=document.getElementById('dots-menu');if(m)m.style.display='none';}
@@ -1007,9 +992,8 @@ function getSintomas(cid){return Array.from(document.querySelectorAll('#'+cid+' 
 // ══ SUBMIT ══
 
 function voltarDaEscolha(){
-  // A escolha do terapeuta é o 1º passo: volta para a apresentação
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-apresentacao').classList.add('active');
+  document.getElementById('screen-triagem').classList.add('active');
 }
 
 function parseDisp(v){
@@ -1023,13 +1007,11 @@ function confirmarEscolhaTerapeuta(id,nome){
   selectedTherapistNome=nome||'';
   selectedHorarioLabel='';
   const t=todosTerapeutas.find(x=>x.id===id);
-  // Fluxo: terapeuta -> horário do terapeuta -> ficha -> envio -> tela "Entrar em contato" (WhatsApp)
-  if(t&&_terapeutaTemHorarios(t)){abrirEscolhaHorario(t,selectedTherapistNome);return;}
-  _irParaFicha();   // terapeuta sem horários cadastrados: vai direto para a ficha
-}
-function _terapeutaTemHorarios(t){
   const disp=parseDisp(t&&t.disponibilidade);
-  return Object.values(disp).some(s=>Array.isArray(s)&&s.length>0);
+  const temHorarios=Object.values(disp).some(s=>Array.isArray(s)&&s.length>0);
+  // Fluxo: ficha -> terapeuta -> horário do terapeuta -> envio -> tela de contato por WhatsApp
+  if(t&&temHorarios){abrirEscolhaHorario(t,selectedTherapistNome);return;}
+  _voltarAoFormComTerapeuta();   // terapeuta sem horários cadastrados: confirma no formulário e envia
 }
 function abrirEscolhaHorario(t,nomeExibido){
   document.getElementById('eh-terapeuta-nome').textContent='Horários de '+(nomeExibido||t.nome);
@@ -1065,9 +1047,12 @@ function selecionarHorarioSlot(btn,diaLabel,horaLabel){
   const cBtn=document.getElementById('eh-continuar-btn');
   cBtn.disabled=false;cBtn.style.opacity='1';cBtn.style.cursor='pointer';
 }
-function confirmarHorario(){
+async function confirmarHorario(){
   if(!selectedHorarioLabel)return;
-  _irParaFicha();   // horário escolhido: agora preenche a ficha
+  const b=document.getElementById('eh-continuar-btn');
+  b.disabled=true;b.textContent='Enviando...';
+  try{await _enviarFicha();}
+  finally{b.disabled=false;b.style.opacity='1';b.textContent='Confirmar horário e enviar ficha';}
 }
 function voltarDaEscolhaHorario(){
   selectedTherapistId=null;selectedTherapistNome='';selectedHorarioLabel='';
@@ -1075,11 +1060,6 @@ function voltarDaEscolhaHorario(){
   document.getElementById('screen-escolha-terapeuta').classList.add('active');
 }
 
-function _irParaFicha(){
-  _irParaTriagem();
-  atualizarBannerTerapeuta();
-  window.scrollTo(0,0);
-}
 function _irParaTriagem(){
   document.getElementById('form-adulto').style.display=currentTipo==='adulto'?'block':'none';
   document.getElementById('form-infantil').style.display=currentTipo==='infantil'?'block':'none';
@@ -1347,16 +1327,29 @@ async function _notificarGravidade(nome){
 function atualizarBannerTerapeuta(){
   const b=document.getElementById('terapeuta-escolhido'),n=document.getElementById('terapeuta-escolhido-nome'),btn=document.getElementById('submit-triagem-btn');
   if(!b||!n)return;
-  if(btn)btn.textContent='Enviar Ficha de Triagem';
-  if(selectedTherapistId){b.style.display='flex';n.textContent='✓ Terapeuta escolhido: '+selectedTherapistNome+(selectedHorarioLabel?' · 🗓 '+selectedHorarioLabel:'');}
-  else{b.style.display='none';}
+  if(selectedTherapistId){b.style.display='flex';n.textContent='✓ Terapeuta escolhido: '+selectedTherapistNome;if(btn)btn.textContent='Enviar Ficha de Triagem';}
+  else{b.style.display='none';if(btn)btn.textContent='Continuar → escolher terapeuta';}
 }
-// "Trocar" na ficha: volta ao início do fluxo (lista de terapeutas), mantendo o que já foi digitado na ficha
-function trocarTerapeuta(){selectedTherapistId=null;selectedTherapistNome='';selectedHorarioLabel='';atualizarBannerTerapeuta();_irParaEscolhaTerapeuta();}
+function _voltarAoFormComTerapeuta(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-triagem').classList.add('active');
+  atualizarBannerTerapeuta();
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+}
+function trocarTerapeuta(){selectedTherapistId=null;selectedTherapistNome='';selectedHorarioLabel='';atualizarBannerTerapeuta();submitTriagem();}
 function _resetEscolha(){selectedTherapistId=null;selectedTherapistNome='';selectedHorarioLabel='';window._triagemFicha=null;atualizarBannerTerapeuta();}
 async function submitTriagem(){
-  // A ficha é o último passo: o terapeuta e o horário já foram escolhidos antes
-  if(!selectedTherapistId){_irParaEscolhaTerapeuta();return;}
+  if(!selectedTherapistId){
+    if(!_validarAntesDeEscolher())return;
+    window._triagemFicha=_montarFichaParaTriagem();
+    const pill=document.getElementById('et-tipo-pill');
+    if(pill)pill.textContent=currentTipo==='casal'?'Casal':currentTipo==='infantil'?'Infantil':'Individual';
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-escolha-terapeuta').classList.add('active');
+    window.scrollTo(0,0);
+    await carregarTerapeutas();
+    return;
+  }
   return _enviarFicha();
 }
 
