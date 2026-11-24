@@ -1203,14 +1203,14 @@ function finalizarRenderCards(){
     document.querySelectorAll('.et-card[data-tid="'+selectedTherapistId+'"]').forEach(c=>c.classList.add('selected'));
   }
 }
-// Terapeuta atende crianças? Vale o que ele declarou em "categorias"; cadastro antigo (sem categorias)
-// só entra se tiver "infantil" nas especialidades (mesma regra do triagem.js)
-function _atendeInfantil(t){
+// Terapeuta atende este público (infantil ou casal)? Vale o que ele declarou em "categorias"; cadastro antigo
+// (sem categorias) só entra se tiver a palavra nas especialidades (mesma regra do triagem.js)
+function _atendeTipo(t,palavra){
   const n=s=>String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   const lista=v=>{if(Array.isArray(v))return v.map(String);if(typeof v==='string'&&v.trim()){try{const p=JSON.parse(v);return Array.isArray(p)?p.map(String):[v];}catch(e){return[v];}}return[];};
   const cats=lista(t.categorias).map(n);
-  if(cats.length)return cats.some(c=>c.includes('infantil'));
-  return n([...(t._esp||[]),...lista(t.especialidades)].join(' | ')).includes('infantil');
+  if(cats.length)return cats.some(c=>c.includes(palavra));
+  return n([...(t._esp||[]),...lista(t.especialidades)].join(' | ')).includes(palavra);
 }
 function renderTerapeutas(){
   const grid=document.getElementById('et-grid');
@@ -1218,7 +1218,7 @@ function renderTerapeutas(){
   const empty=document.getElementById('et-empty');
   const termo=(document.getElementById('et-search')?.value||'').trim().toLowerCase();
   const filtrados=todosTerapeutas.filter(t=>{
-    if(currentTipo==='infantil'&&!_atendeInfantil(t)) return false;   // infantil: só quem atende crianças
+    if((currentTipo==='infantil'||currentTipo==='casal')&&!_atendeTipo(t,currentTipo)) return false;   // infantil/casal: só quem atende esse público
     if(!termo) return true;
     const campos=[t.nome,t.nomeExibicao,t.esp,t.formacao,t.bio].filter(Boolean).join(' ').toLowerCase();
     const campoTags=t._esp.join(' ').toLowerCase();
